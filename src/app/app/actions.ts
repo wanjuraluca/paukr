@@ -136,6 +136,65 @@ export async function recordAttempt(
   return { ok: true, xpTotal, xpGained, currentStreak: streak };
 }
 
+export interface StartExamResult {
+  ok: boolean;
+  attemptId?: string;
+}
+
+/** Starts a new timed exam-simulation run and returns its attempt id. */
+export async function startExamAttempt(
+  examId: string,
+  timeLimitSeconds: number,
+): Promise<StartExamResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const { data, error } = await supabase
+    .from("exam_attempts")
+    .insert({ user_id: user.id, exam_id: examId, time_limit_seconds: timeLimitSeconds })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !data) return { ok: false };
+  return { ok: true, attemptId: data.id };
+}
+
+/** Logs one answer within an exam-simulation run (separate from practice log). */
+export async function recordExamAnswer(
+  attemptId: string,
+  questionId: string,
+  selectedOptionId: string | null,
+  correct: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  await supabase.from("exam_attempt_answers").insert({
+    exam_attempt_id: attemptId,
+    question_id: questionId,
+    selected_option_id: selectedOptionId,
+    is_correct: correct,
+  });
+}
+
+/** Closes out an exam-simulation run with its final score. */
+export async function finishExamAttempt(
+  attemptId: string,
+  scoreCorrect: number,
+  scoreTotal: number,
+): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("exam_attempts")
+    .update({
+      finished_at: new Date().toISOString(),
+      score_correct: scoreCorrect,
+      score_total: scoreTotal,
+    })
+    .eq("id", attemptId);
+}
+
 function todayISODate(): string {
   return new Date().toISOString().slice(0, 10);
 }
