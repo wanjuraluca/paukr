@@ -25,7 +25,7 @@ export default async function ExamPage({
     <div className="flex flex-1 flex-col items-center bg-zinc-50 px-6 py-20 dark:bg-black">
       <main className="w-full max-w-2xl">
         <Link
-          href="/"
+          href="/exams"
           className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
         >
           &larr; Alle Prüfungen
