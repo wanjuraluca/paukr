@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const PRODUCT_NAME = "ExamHub";
 
@@ -26,6 +27,15 @@ interface Props {
   examName: string;
   topics: TopicInfo[];
   questions: QuizQuestion[];
+  userName?: string;
+}
+
+function initialsOf(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/[\s@.]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return trimmed.slice(0, 2).toUpperCase();
 }
 
 const passColor = (v: number) =>
@@ -33,9 +43,10 @@ const passColor = (v: number) =>
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
-export default function AppClient({ examName, topics, questions }: Props) {
+export default function AppClient({ examName, topics, questions, userName = "" }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -60,6 +71,10 @@ export default function AppClient({ examName, topics, questions }: Props) {
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const enterSite = () => router.push("/");
+  const signOut = async () => {
+    await createClient().auth.signOut();
+    router.push("/");
+  };
   const openExam = () => setScreen("detail");
   const resetQuiz = () => {
     setQIndex(0);
@@ -267,13 +282,33 @@ export default function AppClient({ examName, topics, questions }: Props) {
                 </svg>
               )}
             </button>
-            <button
-              aria-label="Profil"
-              className="eh-profile-btn"
-              style={{ ...heading, width: "40px", height: "40px", borderRadius: "50%", border: "1px solid var(--border)", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", cursor: "pointer", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "15px", transition: "transform .18s" }}
-            >
-              TM
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                aria-label="Profil"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="eh-profile-btn"
+                style={{ ...heading, width: "40px", height: "40px", borderRadius: "50%", border: "1px solid var(--border)", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", cursor: "pointer", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "15px", transition: "transform .18s" }}
+              >
+                {initialsOf(userName)}
+              </button>
+              {menuOpen && (
+                <div
+                  style={{ position: "absolute", top: "48px", right: 0, minWidth: "200px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", boxShadow: "var(--shadow-lg)", padding: "8px", zIndex: 60 }}
+                >
+                  {userName && (
+                    <div style={{ padding: "8px 12px", fontSize: "13px", color: "var(--muted)", borderBottom: "1px solid var(--border)", marginBottom: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {userName}
+                    </div>
+                  )}
+                  <button
+                    onClick={signOut}
+                    style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none" }}
+                  >
+                    Abmelden
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
       )}
