@@ -66,7 +66,7 @@ export default function Home() {
 
   const isDark = theme === "dark";
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-  const goToApp = () => router.push("/exams");
+  const goToApp = () => router.push("/app");
 
   const heading: CSSProperties = {
     fontFamily: "var(--font-space), sans-serif",
@@ -322,7 +322,7 @@ export default function Home() {
               textWrap: "pretty",
             }}
           >
-            Wähle deine Prüfung, übe mit echten Fragen und einer realistischen Simulation — und
+            Wähle deine Prüfung, übe mit echten Fragen und einer realistischen Simulation - und
             sammle XP, während du besser wirst. Strukturiert, motivierend, ohne Ballast.
           </p>
           <div
