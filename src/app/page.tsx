@@ -5,26 +5,15 @@ import { useRouter } from "next/navigation";
 
 const PRODUCT_NAME = "paukr";
 
-// Repeated star used in the testimonial ratings.
-function Star() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.7L12 17.8 5.9 20.3l1.4-6.7L2.2 9l6.9-.7L12 2Z" />
-    </svg>
-  );
-}
-
-function Stars() {
-  return (
-    <div style={{ display: "flex", gap: "3px", marginBottom: "14px", color: "var(--accent)" }}>
-      <Star />
-      <Star />
-      <Star />
-      <Star />
-      <Star />
-    </div>
-  );
-}
+// Real, reviewed question count in the FIAE Anwendungsentwicklung pool as of
+// this deploy (see supabase/migrations/*_seed_fiae_ae_*.sql). This page is a
+// static client component with no DB access, so update this by hand whenever
+// a new batch of questions gets approved via /review, rather than showing a
+// stale or made-up number.
+const TOTAL_QUESTIONS = 40;
+// Rounded down to the nearest 10 with a "+", so it reads honestly even as
+// the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
+const QUESTION_COUNT_LABEL = `${Math.floor(TOTAL_QUESTIONS / 10) * 10}+`;
 
 function CheckItem({ text, filled }: { text: string; filled: boolean }) {
   return (
@@ -396,13 +385,12 @@ export default function Home() {
               fontSize: "14px",
             }}
           >
-            <div style={{ display: "flex" }}>
-              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch,var(--accent) 30%,var(--bg))", border: "2px solid var(--bg)" }} />
-              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch,var(--accent) 50%,var(--bg))", border: "2px solid var(--bg)", marginLeft: "-9px" }} />
-              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--accent)", border: "2px solid var(--bg)", marginLeft: "-9px" }} />
-            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M8 3h8l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M8 11l2.5 2.5L16 8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <span>
-              <strong style={{ color: "var(--text)" }}>8.500+</strong> Prüflinge lernen schon mit {PRODUCT_NAME}
+              <strong style={{ color: "var(--text)" }}>{QUESTION_COUNT_LABEL}</strong> Fragen im Stil der IHK-Prüfung, original geschrieben
             </span>
           </div>
         </div>
@@ -510,20 +498,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ===== LOGO STRIP ===== */}
-      <section style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "1000px", margin: "0 auto", padding: "20px 28px 60px" }}>
-        <p style={{ textAlign: "center", fontSize: "13px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", fontWeight: 600, margin: "0 0 22px" }}>
-          Eingesetzt in Ausbildung &amp; Weiterbildung
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: "44px", opacity: 0.55 }}>
-          {["Berufskolleg", "IHK Akademie", "LernWerk", "Campus 42"].map((name) => (
-            <span key={name} style={{ ...heading, fontWeight: 700, fontSize: "20px", letterSpacing: "-.02em" }}>
-              {name}
-            </span>
-          ))}
-        </div>
-      </section>
-
       {/* ===== FEATURES ===== */}
       <section id="features" style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 28px" }}>
         <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 56px", textAlign: "center" }}>
@@ -546,7 +520,7 @@ export default function Home() {
                 </svg>
               ),
               title: "Prüfungsgerechte Fragen",
-              body: "Tausende Fragen im Original-Stil deiner Prüfung, sortiert nach Themen und Schwierigkeit.",
+              body: `${QUESTION_COUNT_LABEL} original geschriebene Fragen im Stil deiner Prüfung, sortiert nach Themen und Schwierigkeit.`,
             },
             {
               delay: ".08s",
@@ -635,55 +609,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== SOCIAL PROOF ===== */}
+      {/* ===== FACTS ===== */}
       <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "88px 28px" }}>
-        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", marginBottom: "56px", textAlign: "center" }}>
+        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
           {[
-            { value: "12.000+", label: "Fragen im Pool", border: false },
-            { value: "8.500+", label: "Aktive Prüflinge", border: true },
-            { value: "94%", label: "Bestehensquote", border: true },
-            { value: "4.8/5", label: "Ø Bewertung", border: true },
+            { value: QUESTION_COUNT_LABEL, label: "Original-Fragen im Pool", border: false },
+            { value: "4", label: "Themengebiete", border: true },
+            { value: "0 €", label: "Für den Einstieg", border: true },
           ].map((stat) => (
             <div key={stat.label} style={{ padding: "24px 12px", borderLeft: stat.border ? "1px solid var(--border)" : undefined }}>
               <div style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.4vw,42px)", letterSpacing: "-.02em", color: "var(--accent)" }}>{stat.value}</div>
               <div style={{ color: "var(--muted)", fontSize: "15px", marginTop: "4px" }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "20px" }}>
-          {[
-            {
-              delay: "0s",
-              quote: "„Ich hab die Prüfungssimulation gehasst geliebt: genau die Fragen kamen dran. Bestanden beim ersten Versuch.“",
-              name: "Lena M.",
-              role: "Kauffrau für Büromanagement",
-              avatar: "color-mix(in oklch, var(--accent) 25%, var(--bg))",
-            },
-            {
-              delay: ".1s",
-              quote: "„Das XP-System klingt albern, aber es hat mich tatsächlich jeden Tag ans Üben gebracht. Serie nicht reißen lassen!“",
-              name: "Jonas K.",
-              role: "Fachinformatiker in Ausbildung",
-              avatar: "color-mix(in oklch, var(--accent) 45%, var(--bg))",
-            },
-            {
-              delay: ".2s",
-              quote: "„Endlich eine Plattform, die nicht aussieht wie aus 2009. Übersichtlich, schnell, und macht sogar Spaß.“",
-              name: "Aylin T.",
-              role: "Industriekauffrau",
-              avatar: "var(--accent)",
-            },
-          ].map((t) => (
-            <div key={t.name} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${t.delay} both`, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px" }}>
-              <Stars />
-              <p style={{ fontSize: "16px", lineHeight: 1.6, margin: "0 0 20px", color: "var(--text)" }}>{t.quote}</p>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "40px", height: "40px", borderRadius: "50%", background: t.avatar }} />
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: "15px" }}>{t.name}</div>
-                  <div style={{ color: "var(--muted)", fontSize: "13px" }}>{t.role}</div>
-                </div>
-              </div>
             </div>
           ))}
         </div>
