@@ -99,17 +99,19 @@ export default async function AppPage() {
   // Real per-user stats (fall back to zero for a brand-new profile).
   let xpTotal = 0;
   let currentStreak = 0;
+  let isAdmin = false;
   // How many exam simulations the user has passed in a row (trailing streak of
   // finished attempts scoring >= 50 points), for the "prüfungsbereit" tracker.
   let simPassStreak = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("xp_total, current_streak")
+      .select("xp_total, current_streak, is_admin")
       .eq("id", user.id)
-      .single<{ xp_total: number; current_streak: number }>();
+      .single<{ xp_total: number; current_streak: number; is_admin: boolean }>();
     xpTotal = profile?.xp_total ?? 0;
     currentStreak = profile?.current_streak ?? 0;
+    isAdmin = profile?.is_admin ?? false;
 
     if (exam) {
       const { data: attempts } = await supabase
@@ -144,6 +146,7 @@ export default async function AppPage() {
       xpTotal={xpTotal}
       currentStreak={currentStreak}
       simPassStreak={simPassStreak}
+      isAdmin={isAdmin}
     />
   );
 }

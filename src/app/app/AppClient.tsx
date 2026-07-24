@@ -54,6 +54,7 @@ interface Props {
   xpTotal?: number;
   currentStreak?: number;
   simPassStreak?: number;
+  isAdmin?: boolean;
 }
 
 /**
@@ -121,6 +122,7 @@ export default function AppClient({
   xpTotal = 0,
   currentStreak = 0,
   simPassStreak = 0,
+  isAdmin = false,
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -470,6 +472,14 @@ export default function AppClient({
                     <div style={{ padding: "8px 12px", fontSize: "13px", color: "var(--muted)", borderBottom: "1px solid var(--border)", marginBottom: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {userName}
                     </div>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => router.push("/review")}
+                      style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none" }}
+                    >
+                      Fragen-Review
+                    </button>
                   )}
                   <button
                     onClick={signOut}

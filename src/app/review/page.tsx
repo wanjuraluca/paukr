@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ReviewShell from "./ReviewShell";
 import {
@@ -23,6 +25,21 @@ interface ReviewQuestion {
 const heading = { fontFamily: "var(--font-space), sans-serif" } as const;
 
 export default async function ReviewPage() {
+  // Gate behind auth + an explicit admin flag on the profile, not just a
+  // warning label — this page can approve/reject/delete question content.
+  const authClient = await createClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  if (!user) redirect("/auth?next=/review");
+
+  const { data: profile } = await authClient
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single<{ is_admin: boolean }>();
+  if (!profile?.is_admin) redirect("/app");
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("questions")
@@ -41,30 +58,50 @@ export default async function ReviewPage() {
   const pending = questions.filter((q) => !q.reviewed).length;
   const approved = questions.filter((q) => q.reviewed).length;
 
+  // Real platform stats (admin-only, bypasses RLS via the service-role
+  // client). No estimates or made-up numbers here, just actual row counts.
+  const [{ count: userCount }, { count: practiceAnswerCount }, { data: scoredAttempts }] =
+    await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("question_attempts").select("*", { count: "exact", head: true }),
+      supabase
+        .from("exam_attempts")
+        .select("score_correct, score_total")
+        .not("finished_at", "is", null)
+        .not("score_total", "is", null)
+        .returns<{ score_correct: number | null; score_total: number | null }[]>(),
+    ]);
+
+  // Pass rate needs correct*2 >= total, which PostgREST can't express as a
+  // simple count filter, so this is computed from the fetched scores instead.
+  const scored = (scoredAttempts ?? []).filter((a) => (a.score_total ?? 0) > 0);
+  const passedCount = scored.filter((a) => (a.score_correct ?? 0) * 2 >= (a.score_total ?? 0)).length;
+  const passRateLabel = scored.length > 0 ? `${Math.round((passedCount / scored.length) * 100)}%` : "–";
+  const attemptCount = scored.length;
+
   return (
     <ReviewShell>
       <main style={{ maxWidth: "820px", margin: "0 auto", padding: "56px 24px 90px", fontSize: "16px", lineHeight: 1.6 }}>
-        <div
-          style={{
-            padding: "12px 16px",
-            borderRadius: "12px",
-            border: "1px solid var(--border)",
-            background: "color-mix(in oklch, var(--err) 10%, var(--bg))",
-            color: "var(--err-strong)",
-            fontSize: "13px",
-            fontWeight: 600,
-            marginBottom: "28px",
-          }}
-        >
-          Interne Review-Seite, ohne Zugriffsschutz. Vor einem echten Deploy hinter Login/Auth legen.
-        </div>
-
         <h1 style={{ ...heading, fontWeight: 700, fontSize: "34px", letterSpacing: "-.02em", margin: "0 0 8px" }}>
           Fragen-Review
         </h1>
         <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>
           Freigegebene Fragen erscheinen im Übungsmodus. Entwürfe bleiben verborgen.
         </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "12px", marginBottom: "32px" }}>
+          {[
+            { value: String(userCount ?? 0), label: "Registrierte Nutzer" },
+            { value: String(practiceAnswerCount ?? 0), label: "Übungsantworten" },
+            { value: String(attemptCount), label: "Prüfungssimulationen" },
+            { value: passRateLabel, label: "Bestehensquote (real)" },
+          ].map((s) => (
+            <div key={s.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "16px 18px" }}>
+              <div style={{ ...heading, fontWeight: 700, fontSize: "26px", letterSpacing: "-.02em", color: "var(--accent)" }}>{s.value}</div>
+              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "32px" }}>
           <span style={{ ...heading, fontWeight: 600, fontSize: "14px", padding: "6px 12px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
