@@ -585,6 +585,9 @@ export default function Home() {
             <div
               key={f.title}
               className="eh-feature-card"
+              onAnimationEnd={(e) => {
+                e.currentTarget.style.animation = "none";
+              }}
               style={{
                 animation: `eh-revUp .7s cubic-bezier(.16,1,.3,1) ${f.delay} both`,
                 background: "var(--surface)",
