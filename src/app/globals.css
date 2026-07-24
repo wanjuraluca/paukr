@@ -16,7 +16,7 @@ body {
   font-family: var(--font-hanken), system-ui, sans-serif;
 }
 
-/* ===== ExamHub landing design tokens ===== */
+/* ===== paukr landing design tokens ===== */
 .eh {
   --bg: #ffffff;
   --bg-alt: #f7f7fa;
@@ -69,7 +69,7 @@ body {
   background: color-mix(in oklch, var(--accent) 30%, transparent);
 }
 
-@keyframes eh-revUp {
+@keyframes pk-revUp {
   from {
     opacity: 0;
     transform: translateY(18px);
@@ -79,7 +79,7 @@ body {
     transform: translateY(0);
   }
 }
-@keyframes eh-floaty {
+@keyframes pk-floaty {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
@@ -88,7 +88,7 @@ body {
     transform: translateY(-14px) rotate(-0.4deg);
   }
 }
-@keyframes eh-floaty2 {
+@keyframes pk-floaty2 {
   0%,
   100% {
     transform: translateY(0);
@@ -97,7 +97,7 @@ body {
     transform: translateY(10px);
   }
 }
-@keyframes eh-pulseglow {
+@keyframes pk-pulseglow {
   0%,
   100% {
     opacity: 0.5;
@@ -106,7 +106,7 @@ body {
     opacity: 0.85;
   }
 }
-@keyframes eh-popIn {
+@keyframes pk-popIn {
   0% {
     opacity: 0;
     transform: scale(0.9);
@@ -119,7 +119,7 @@ body {
     transform: scale(1);
   }
 }
-@keyframes eh-xpGlow {
+@keyframes pk-xpGlow {
   0% {
     transform: scale(1);
   }
@@ -130,7 +130,7 @@ body {
     transform: scale(1);
   }
 }
-@keyframes eh-confetti {
+@keyframes pk-confetti {
   0% {
     transform: translateY(-10px) rotate(0deg);
     opacity: 0;
@@ -143,139 +143,139 @@ body {
     opacity: 0;
   }
 }
-@keyframes eh-ringFill {
+@keyframes pk-ringFill {
   from {
     stroke-dashoffset: 339;
   }
 }
 
 /* ===== Hover / active interactions (replace Claude-Design style-hover) ===== */
-.eh-navlink:hover {
+.pk-navlink:hover {
   color: var(--text) !important;
 }
-.eh-btn-accent:hover {
+.pk-btn-accent:hover {
   transform: scale(1.03);
   box-shadow: 0 10px 28px color-mix(in oklch, var(--accent) 45%, transparent);
 }
-.eh-btn-accent:active {
+.pk-btn-accent:active {
   transform: scale(0.96);
 }
-.eh-btn-accent-lg:hover {
+.pk-btn-accent-lg:hover {
   transform: scale(1.03);
   box-shadow: 0 14px 36px color-mix(in oklch, var(--accent) 46%, transparent);
 }
-.eh-btn-accent-lg:active {
+.pk-btn-accent-lg:active {
   transform: scale(0.96);
 }
-.eh-btn-ghost:hover {
+.pk-btn-ghost:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
-.eh-btn-ghost:active {
+.pk-btn-ghost:active {
   transform: scale(0.96);
 }
-.eh-theme-btn:hover {
+.pk-theme-btn:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
 }
-.eh-theme-btn:active {
+.pk-theme-btn:active {
   transform: scale(0.94);
 }
-.eh-feature-card:hover {
+.pk-feature-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow);
   border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
 }
-.eh-price-btn-ghost:hover {
+.pk-price-btn-ghost:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
-.eh-price-btn-ghost:active {
+.pk-price-btn-ghost:active {
   transform: scale(0.97);
 }
-.eh-price-btn-accent:hover {
+.pk-price-btn-accent:hover {
   transform: scale(1.02);
   box-shadow: 0 12px 30px color-mix(in oklch, var(--accent) 46%, transparent);
 }
-.eh-price-btn-accent:active {
+.pk-price-btn-accent:active {
   transform: scale(0.97);
 }
-.eh-cta-btn:hover {
+.pk-cta-btn:hover {
   transform: scale(1.03);
   box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 50%, transparent);
 }
-.eh-cta-btn:active {
+.pk-cta-btn:active {
   transform: scale(0.96);
 }
-.eh-footer-link:hover {
+.pk-footer-link:hover {
   color: var(--text) !important;
 }
-.eh-social-btn:hover {
+.pk-social-btn:hover {
   color: var(--text) !important;
   border-color: var(--accent) !important;
 }
 
 /* ===== App-screen interactions ===== */
-.eh-app-back:hover {
+.pk-app-back:hover {
   border-color: var(--accent);
   transform: translateX(-2px);
 }
-.eh-app-back:active {
+.pk-app-back:active {
   transform: scale(0.94);
 }
-.eh-profile-btn:hover {
+.pk-profile-btn:hover {
   transform: translateY(-1px);
 }
-.eh-profile-btn:active {
+.pk-profile-btn:active {
   transform: scale(0.94);
 }
-.eh-exam-card:hover {
+.pk-exam-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: color-mix(in oklch, var(--accent) 45%, var(--border));
 }
-.eh-exam-card:active {
+.pk-exam-card:active {
   transform: scale(0.99);
 }
-.eh-mode-primary:hover {
+.pk-mode-primary:hover {
   transform: scale(1.02);
   box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 46%, transparent);
 }
-.eh-mode-primary:active {
+.pk-mode-primary:active {
   transform: scale(0.98);
 }
-.eh-mode-secondary:hover {
+.pk-mode-secondary:hover {
   transform: translateY(-3px);
   border-color: var(--accent);
   box-shadow: var(--shadow);
 }
-.eh-mode-secondary:active {
+.pk-mode-secondary:active {
   transform: scale(0.98);
 }
-.eh-topic-card:hover {
+.pk-topic-card:hover {
   transform: translateY(-3px);
   border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
   box-shadow: var(--shadow);
 }
-.eh-topic-card:active {
+.pk-topic-card:active {
   transform: scale(0.98);
 }
-.eh-practice-exit:hover {
+.pk-practice-exit:hover {
   border-color: var(--accent);
   transform: rotate(90deg);
 }
-.eh-practice-exit:active {
+.pk-practice-exit:active {
   transform: scale(0.9);
 }
-.eh-scale-btn:hover {
+.pk-scale-btn:hover {
   transform: scale(1.03);
 }
-.eh-scale-btn:active {
+.pk-scale-btn:active {
   transform: scale(0.96);
 }
-.eh-scale-btn-sm:hover {
+.pk-scale-btn-sm:hover {
   transform: scale(1.02);
 }
-.eh-scale-btn-sm:active {
+.pk-scale-btn-sm:active {
   transform: scale(0.97);
 }
