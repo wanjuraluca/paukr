@@ -73,11 +73,20 @@ export default async function AppPage() {
     questions = shuffle(all).slice(0, SESSION_SIZE);
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ||
+    user?.email ||
+    "";
+
   return (
     <AppClient
       examName={exam?.name ?? "Prüfung"}
       topics={topics}
       questions={questions}
+      userName={displayName}
     />
   );
 }
