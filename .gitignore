@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI assistant context (not for public repo)
+.claude/
+CLAUDE.md
+AGENTS.md
+PROJECT_STATUS.md
