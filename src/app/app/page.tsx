@@ -99,6 +99,9 @@ export default async function AppPage() {
   // Real per-user stats (fall back to zero for a brand-new profile).
   let xpTotal = 0;
   let currentStreak = 0;
+  // How many exam simulations the user has passed in a row (trailing streak of
+  // finished attempts scoring >= 50 points), for the "prüfungsbereit" tracker.
+  let simPassStreak = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -107,6 +110,23 @@ export default async function AppPage() {
       .single<{ xp_total: number; current_streak: number }>();
     xpTotal = profile?.xp_total ?? 0;
     currentStreak = profile?.current_streak ?? 0;
+
+    if (exam) {
+      const { data: attempts } = await supabase
+        .from("exam_attempts")
+        .select("score_correct, score_total, finished_at")
+        .eq("user_id", user.id)
+        .eq("exam_id", exam.id)
+        .not("finished_at", "is", null)
+        .order("finished_at", { ascending: false })
+        .returns<{ score_correct: number | null; score_total: number | null }[]>();
+      for (const a of attempts ?? []) {
+        const total = a.score_total ?? 0;
+        const passed = total > 0 && (a.score_correct ?? 0) * 2 >= total; // >= 50%
+        if (passed) simPassStreak += 1;
+        else break; // A fail (or unscored) ends the trailing streak.
+      }
+    }
   }
 
   const displayName =
@@ -123,6 +143,7 @@ export default async function AppPage() {
       userName={displayName}
       xpTotal={xpTotal}
       currentStreak={currentStreak}
+      simPassStreak={simPassStreak}
     />
   );
 }

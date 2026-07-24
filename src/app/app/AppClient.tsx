@@ -13,6 +13,11 @@ const SESSION_SIZE = 10;
 // Our exam-simulation format (Teil 1 style: written, timed, 100-point scale).
 // Not a byte-for-byte copy of the real exam's time limit.
 const SIM_TIME_LIMIT_SECONDS = 60 * 60;
+// The simulation stays locked until the user has mastered this share of the
+// question pool (a Fahrschul-app style unlock gate).
+const SIM_UNLOCK_PCT = 80;
+// Passing the simulation this many times in a row marks the user as ready.
+const READINESS_STREAK = 5;
 
 type Screen = "dashboard" | "detail" | "practice" | "result";
 // "practice" = due reviews + new questions; "wrong" = only questions the user
@@ -48,6 +53,7 @@ interface Props {
   userName?: string;
   xpTotal?: number;
   currentStreak?: number;
+  simPassStreak?: number;
 }
 
 /**
@@ -114,6 +120,7 @@ export default function AppClient({
   userName = "",
   xpTotal = 0,
   currentStreak = 0,
+  simPassStreak = 0,
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -137,6 +144,9 @@ export default function AppClient({
   const [secondsLeft, setSecondsLeft] = useState(SIM_TIME_LIMIT_SECONDS);
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const finishingRef = useRef(false);
+  // Consecutive passed simulations, seeded from the server and updated live as
+  // the user finishes runs this session (server recomputes on next load).
+  const [passStreak, setPassStreak] = useState(simPassStreak);
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -168,12 +178,16 @@ export default function AppClient({
     () => questions.filter((x) => x.lastCorrect === false).length,
     [questions],
   );
-  // Share of the pool the user has already seen at least once (coverage ring).
-  const seenPct = useMemo(() => {
+  // Share of the pool the user currently has right (last answer correct). This
+  // single "% richtig" metric drives every progress bar/ring in the app and
+  // fills toward unlocking the simulation.
+  const masteredPct = useMemo(() => {
     if (questions.length === 0) return 0;
-    const seen = questions.filter((x) => !x.isNew).length;
-    return Math.round((seen / questions.length) * 100);
+    const mastered = questions.filter((x) => x.lastCorrect === true).length;
+    return Math.round((mastered / questions.length) * 100);
   }, [questions]);
+  const simUnlocked = masteredPct >= SIM_UNLOCK_PCT;
+  const examReady = passStreak >= READINESS_STREAK;
 
   // First name for the greeting (before any space or @).
   const firstName = userName.split(/[\s@]/)[0] ?? "";
@@ -205,6 +219,7 @@ export default function AppClient({
     setScreen("practice");
   };
   const startSimulation = async () => {
+    if (!simUnlocked) return; // Gated until the pool is mastered enough.
     setMode("sim");
     setSession(buildSession(questions, "sim"));
     resetQuiz();
@@ -225,6 +240,8 @@ export default function AppClient({
     const total = session.length;
     const grade = gradeExam(correctCount, total);
     setGradeResult(grade);
+    // Update the consecutive-pass streak: a pass extends it, a fail resets it.
+    setPassStreak((s) => (grade.passed ? s + 1 : 0));
     if (examAttemptId) void finishExamAttempt(examAttemptId, correctCount, total);
     setScreen("result");
   };
@@ -497,7 +514,7 @@ export default function AppClient({
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{questions.length}</span>
               </div>
               <div style={{ height: "7px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
-                <div style={{ width: `${seenPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
+                <div style={{ width: `${masteredPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
               </div>
             </button>
 
@@ -551,9 +568,9 @@ export default function AppClient({
           </div>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
-              <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: `conic-gradient(var(--accent) 0% ${seenPct}%, var(--bg-alt) ${seenPct}% 100%)` }} />
+              <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: `conic-gradient(var(--accent) 0% ${masteredPct}%, var(--bg-alt) ${masteredPct}% 100%)` }} />
               <div style={{ position: "absolute", inset: "10px", borderRadius: "50%", background: "var(--surface)", display: "grid", placeItems: "center" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "22px" }}>{seenPct}%</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "22px" }}>{masteredPct}%</span>
               </div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
@@ -607,17 +624,77 @@ export default function AppClient({
             </button>
             <button
               onClick={startSimulation}
-              className="pk-mode-secondary"
-              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .16s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
+              disabled={!simUnlocked}
+              className={simUnlocked ? "pk-mode-secondary" : undefined}
+              aria-disabled={!simUnlocked}
+              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .16s both", position: "relative", textAlign: "left", cursor: simUnlocked ? "pointer" : "not-allowed", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px", opacity: simUnlocked ? 1 : 0.62, transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             >
+              {!simUnlocked && (
+                <span style={{ position: "absolute", top: "22px", right: "22px", color: "var(--muted)" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                </span>
+              )}
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ marginBottom: "16px" }}>
                 <circle cx="12" cy="13" r="8" stroke="var(--accent)" strokeWidth="2" />
                 <path d="M12 9.5V13l2.5 1.5M9 2h6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
               </svg>
               <div style={{ ...heading, fontWeight: 600, fontSize: "22px", marginBottom: "6px" }}>Prüfungssimulation</div>
-              <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>Zeitlimit, echtes Prüfungsformat, ehrliche Auswertung.</div>
+              <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>
+                {simUnlocked
+                  ? "Zeitlimit, echtes Prüfungsformat, ehrliche Auswertung."
+                  : `Freigeschaltet ab ${SIM_UNLOCK_PCT}% richtig beantworteter Fragen.`}
+              </div>
             </button>
           </div>
+
+          {/* Unlock progress (while locked) or exam-readiness tracker (once
+              unlocked): the Fahrschul-app style consistency loop. */}
+          {!simUnlocked ? (
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px", padding: "22px 24px", marginBottom: "40px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "12px", gap: "12px" }}>
+                <span style={{ fontSize: "15px", fontWeight: 600 }}>Simulationsmodus wird bei {SIM_UNLOCK_PCT}% freigeschaltet</span>
+                <span style={{ ...heading, fontSize: "15px", fontWeight: 700, color: "var(--accent-strong)" }}>{masteredPct}%</span>
+              </div>
+              <div style={{ position: "relative", height: "10px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
+                <div style={{ width: `${masteredPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)", transition: "width .6s cubic-bezier(.16,1,.3,1)" }} />
+                {/* Marker for the unlock threshold. */}
+                <span style={{ position: "absolute", top: "-3px", bottom: "-3px", left: `${SIM_UNLOCK_PCT}%`, width: "2px", background: "var(--muted)", opacity: 0.5 }} />
+              </div>
+              <p style={{ fontSize: "14px", color: "var(--muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
+                Übe weiter im Themenmodus. Jede Frage, die du richtig hast, bringt dich näher an die Freischaltung.
+              </p>
+            </div>
+          ) : examReady ? (
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--accent) 12%, var(--surface))", border: "1px solid color-mix(in oklch, var(--accent) 45%, var(--border))", borderRadius: "18px", padding: "22px 24px", marginBottom: "40px" }}>
+              <span style={{ width: "46px", height: "46px", borderRadius: "13px", background: "color-mix(in oklch, var(--accent) 20%, var(--bg))", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4L19 7" stroke="var(--accent-strong)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <div>
+                <div style={{ ...heading, fontWeight: 700, fontSize: "18px", marginBottom: "3px", color: "var(--accent-strong)" }}>Du bist prüfungsbereit!</div>
+                <div style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>{READINESS_STREAK} Simulationen in Folge bestanden. Bleib dran, damit es so bleibt.</div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px", padding: "22px 24px", marginBottom: "40px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "12px", gap: "12px" }}>
+                <span style={{ fontSize: "15px", fontWeight: 600 }}>Weg zur Prüfungsbereitschaft</span>
+                <span style={{ ...heading, fontSize: "15px", fontWeight: 700, color: "var(--accent-strong)" }}>{Math.min(passStreak, READINESS_STREAK)} / {READINESS_STREAK}</span>
+              </div>
+              <div style={{ display: "flex", gap: "6px" }}>
+                {Array.from({ length: READINESS_STREAK }).map((_, i) => (
+                  <div key={i} style={{ flex: 1, height: "10px", borderRadius: "100px", background: i < passStreak ? "var(--accent)" : "var(--bg-alt)", transition: "background .3s" }} />
+                ))}
+              </div>
+              <p style={{ fontSize: "14px", color: "var(--muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
+                Bestehe die Simulation {READINESS_STREAK}-mal in Folge, dann giltst du als prüfungsbereit. Ein Durchfaller setzt den Zähler zurück.
+              </p>
+            </div>
+          )}
           <h2 style={{ ...heading, animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", fontWeight: 600, fontSize: "20px", letterSpacing: "-.01em", margin: "0 0 18px" }}>Themengebiete</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "14px" }}>
             {topics.map((t) => (
@@ -833,6 +910,26 @@ export default function AppClient({
                 ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Bestehensgrenze: ${PASS_THRESHOLD}).`
                 : `${correctCount} von ${answeredTotal} Fragen richtig. ${passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
             </p>
+            {mode === "sim" && (
+              <div style={{ marginBottom: "40px" }}>
+                {examReady ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "9px", padding: "10px 18px", borderRadius: "100px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", fontSize: "15px", fontWeight: 700 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Prüfungsbereit! {READINESS_STREAK} in Folge bestanden
+                  </span>
+                ) : passed ? (
+                  <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>
+                    {passStreak} von {READINESS_STREAK} in Folge bestanden, noch {READINESS_STREAK - passStreak} bis prüfungsbereit.
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--err-strong)" }}>
+                    Serie zurückgesetzt. Für die Prüfungsbereitschaft {READINESS_STREAK} in Folge bestehen.
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           {topicScores.length > 0 && (
             <div style={{ position: "relative", zIndex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "28px", marginBottom: "28px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .08s both" }}>
