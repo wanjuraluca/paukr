@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import ReviewShell from "./ReviewShell";
 import {
   approveQuestion,
   unapproveQuestion,
@@ -41,17 +42,8 @@ export default async function ReviewPage() {
   const approved = questions.filter((q) => q.reviewed).length;
 
   return (
-    <div
-      className="eh"
-      style={{
-        background: "var(--bg)",
-        color: "var(--text)",
-        minHeight: "100vh",
-        fontSize: "16px",
-        lineHeight: 1.6,
-      }}
-    >
-      <main style={{ maxWidth: "820px", margin: "0 auto", padding: "56px 24px 90px" }}>
+    <ReviewShell>
+      <main style={{ maxWidth: "820px", margin: "0 auto", padding: "56px 24px 90px", fontSize: "16px", lineHeight: 1.6 }}>
         <div
           style={{
             padding: "12px 16px",
@@ -202,6 +194,6 @@ export default async function ReviewPage() {
           })}
         </div>
       </main>
-    </div>
+    </ReviewShell>
   );
 }
