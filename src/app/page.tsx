@@ -546,7 +546,7 @@ export default function Home() {
                 </svg>
               ),
               title: "Prüfungsgerechte Fragen",
-              body: "Tausende Fragen im Original-Stil deiner Prüfung — sortiert nach Themen und Schwierigkeit.",
+              body: "Tausende Fragen im Original-Stil deiner Prüfung, sortiert nach Themen und Schwierigkeit.",
             },
             {
               delay: ".08s",
@@ -619,8 +619,8 @@ export default function Home() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "28px" }}>
             {[
               { delay: "0s", num: "01", title: "Prüfung wählen", body: "Such dir deine Prüfung aus dem Katalog. Der Rest wird passgenau für dich vorbereitet." },
-              { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich durch Fragen und volle Simulationen — in deinem Tempo, mit sofortigem Feedback." },
-              { delay: ".24s", num: "03", title: "Bestehen", body: "Geh mit einem sicheren Gefühl in die echte Prüfung — du weißt genau, was dich erwartet." },
+              { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich durch Fragen und volle Simulationen, in deinem Tempo, mit sofortigem Feedback." },
+              { delay: ".24s", num: "03", title: "Bestehen", body: "Geh mit einem sicheren Gefühl in die echte Prüfung. Du weißt genau, was dich erwartet." },
             ].map((s) => (
               <div key={s.num} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${s.delay} both` }}>
                 <div style={{ ...heading, fontWeight: 700, fontSize: "15px", color: "var(--accent)", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -654,7 +654,7 @@ export default function Home() {
           {[
             {
               delay: "0s",
-              quote: "„Ich hab die Prüfungssimulation gehasst geliebt — genau die Fragen kamen dran. Bestanden beim ersten Versuch.“",
+              quote: "„Ich hab die Prüfungssimulation gehasst geliebt: genau die Fragen kamen dran. Bestanden beim ersten Versuch.“",
               name: "Lena M.",
               role: "Kauffrau für Büromanagement",
               avatar: "color-mix(in oklch, var(--accent) 25%, var(--bg))",
@@ -760,7 +760,7 @@ export default function Home() {
               Bereit, deine Prüfung entspannt anzugehen?
             </h2>
             <p style={{ fontSize: "19px", color: "var(--muted)", margin: "0 auto 34px", maxWidth: "520px", textWrap: "pretty" }}>
-              Leg in unter einer Minute los — kostenlos, ohne Kreditkarte.
+              Leg in unter einer Minute los, kostenlos, ohne Kreditkarte.
             </p>
             <button
               onClick={goToApp}
@@ -816,7 +816,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
-          © 2026 {PRODUCT_NAME} · Arbeitstitel — alle Inhalte sind Platzhalter.
+          © 2026 {PRODUCT_NAME} · Arbeitstitel, alle Inhalte sind Platzhalter.
         </div>
       </footer>
     </div>

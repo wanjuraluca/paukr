@@ -64,7 +64,7 @@ export default async function ReviewPage() {
             marginBottom: "28px",
           }}
         >
-          Interne Review-Seite — ohne Zugriffsschutz. Vor einem echten Deploy hinter Login/Auth legen.
+          Interne Review-Seite, ohne Zugriffsschutz. Vor einem echten Deploy hinter Login/Auth legen.
         </div>
 
         <h1 style={{ ...heading, fontWeight: 700, fontSize: "34px", letterSpacing: "-.02em", margin: "0 0 8px" }}>

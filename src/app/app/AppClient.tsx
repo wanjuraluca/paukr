@@ -3,19 +3,25 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { recordAttempt } from "./actions";
+import { recordAttempt, startExamAttempt, recordExamAnswer, finishExamAttempt } from "./actions";
+import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
 
 const PRODUCT_NAME = "paukr";
 
 // How many questions one practice session pulls from the eligible pool.
 const SESSION_SIZE = 10;
+// Our exam-simulation format (Teil 1 style: written, timed, 100-point scale).
+// Not a byte-for-byte copy of the real exam's time limit.
+const SIM_TIME_LIMIT_SECONDS = 60 * 60;
 
 type Screen = "dashboard" | "detail" | "practice" | "result";
 // "practice" = due reviews + new questions; "wrong" = only questions the user
-// last got wrong (the "Falsche Fragen üben" mode).
-type PracticeMode = "practice" | "wrong";
+// last got wrong (the "Falsche Fragen üben" mode); "sim" = the timed,
+// graded exam simulation (all questions, once, no per-question feedback).
+type PracticeMode = "practice" | "wrong" | "sim";
 
 export interface QuizOption {
+  id: string;
   text: string;
   isCorrect: boolean;
 }
@@ -35,6 +41,7 @@ export interface TopicInfo {
   count: number;
 }
 interface Props {
+  examId: string;
   examName: string;
   topics: TopicInfo[];
   questions: QuizQuestion[];
@@ -47,7 +54,8 @@ interface Props {
  * Builds a practice session from the full question pool. In "practice" mode it
  * prioritises questions that are due for review (soonest first), then fills up
  * with never-seen questions. In "wrong" mode it returns only questions the user
- * last answered incorrectly.
+ * last answered incorrectly. In "sim" mode it returns the whole pool, shuffled,
+ * as a single one-shot graded run.
  */
 function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] {
   if (mode === "wrong") {
@@ -55,12 +63,21 @@ function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] 
       .filter((q) => q.lastCorrect === false)
       .sort((a, b) => dueTime(a) - dueTime(b));
   }
+  if (mode === "sim") {
+    return shuffleArr(pool);
+  }
   const now = Date.now();
   const due = pool
     .filter((q) => !q.isNew && q.dueAt !== null && new Date(q.dueAt).getTime() <= now)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const fresh = shuffleArr(pool.filter((q) => q.isNew));
   return [...due, ...fresh].slice(0, SESSION_SIZE);
+}
+
+function formatClock(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function dueTime(q: QuizQuestion): number {
@@ -90,6 +107,7 @@ const passColor = (v: number) =>
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
 export default function AppClient({
+  examId,
   examName,
   topics,
   questions,
@@ -114,6 +132,11 @@ export default function AppClient({
   const rafRef = useRef<number | null>(null);
   // When the current question was shown, to measure hesitation for SM-2.
   const shownAtRef = useRef<number>(0);
+  // Exam-simulation-only state: the running attempt, countdown and final grade.
+  const [examAttemptId, setExamAttemptId] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(SIM_TIME_LIMIT_SECONDS);
+  const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
+  const finishingRef = useRef(false);
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -123,11 +146,23 @@ export default function AppClient({
     };
   }, []);
 
+  // Countdown for the exam simulation; auto-finishes when time runs out.
+  useEffect(() => {
+    if (screen !== "practice" || mode !== "sim") return;
+    if (secondsLeft <= 0) {
+      finishSimulation();
+      return;
+    }
+    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, mode, secondsLeft]);
+
   const isDark = theme === "dark";
   const total = session.length;
   const q = session[qIndex];
 
-  // How many questions the user last got wrong — drives the "Falsche Fragen"
+  // How many questions the user last got wrong, drives the "Falsche Fragen"
   // entry point and its badge.
   const wrongCount = useMemo(
     () => questions.filter((x) => x.lastCorrect === false).length,
@@ -169,6 +204,30 @@ export default function AppClient({
     resetQuiz();
     setScreen("practice");
   };
+  const startSimulation = async () => {
+    setMode("sim");
+    setSession(buildSession(questions, "sim"));
+    resetQuiz();
+    setSecondsLeft(SIM_TIME_LIMIT_SECONDS);
+    setGradeResult(null);
+    finishingRef.current = false;
+    const res = await startExamAttempt(examId, SIM_TIME_LIMIT_SECONDS);
+    setExamAttemptId(res.attemptId ?? null);
+    setScreen("practice");
+  };
+  // Grades and closes out the exam-simulation run (called on time-up or after
+  // the last question). Unanswered questions count as incorrect, same as a
+  // blank answer in the real written exam.
+  const finishSimulation = () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    const correctCount = results.filter((r) => r.correct).length;
+    const total = session.length;
+    const grade = gradeExam(correctCount, total);
+    setGradeResult(grade);
+    if (examAttemptId) void finishExamAttempt(examAttemptId, correctCount, total);
+    setScreen("result");
+  };
   const exitPractice = () => setScreen("detail");
   const backToOverview = () => setScreen("dashboard");
   const goBack = () => setScreen((s) => (s === "detail" ? "dashboard" : "detail"));
@@ -199,17 +258,21 @@ export default function AppClient({
     setSelected(i);
     setAnswered(true);
     setResults((r) => [...r, { topic: q.topic, correct: opt.isCorrect }]);
-    if (opt.isCorrect) animateXp(50);
+    if (mode !== "sim" && opt.isCorrect) animateXp(50);
 
     // Persist the attempt + advance spaced repetition (fire-and-forget; the
     // server is the source of truth on the next load).
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
     void recordAttempt(q.id, opt.isCorrect, responseMs);
+    if (mode === "sim" && examAttemptId) {
+      void recordExamAnswer(examAttemptId, q.id, opt.id, opt.isCorrect);
+    }
   };
 
   const next = () => {
     if (qIndex + 1 >= total) {
-      setScreen("result");
+      if (mode === "sim") finishSimulation();
+      else setScreen("result");
       return;
     }
     setQIndex((i) => i + 1);
@@ -229,11 +292,13 @@ export default function AppClient({
   const verdictLabel =
     selected !== null && q?.options[selected]?.isCorrect ? "Richtig!" : "Nicht ganz.";
 
-  // Result computation from actual answers.
+  // Result computation from actual answers. In sim mode the graded score
+  // (blank answers count against you) replaces the plain practice score.
   const answeredTotal = results.length || total;
   const correctCount = results.filter((r) => r.correct).length;
-  const scorePct = answeredTotal ? Math.round((correctCount / answeredTotal) * 100) : 0;
-  const passed = scorePct >= 50;
+  const practiceScorePct = answeredTotal ? Math.round((correctCount / answeredTotal) * 100) : 0;
+  const scorePct = mode === "sim" && gradeResult ? gradeResult.points : practiceScorePct;
+  const passed = mode === "sim" && gradeResult ? gradeResult.passed : scorePct >= 50;
   const ringOffset = Math.round(339 * (1 - scorePct / 100));
   const ringColor = passColor(scorePct);
   const byTopic = new Map<string, { correct: number; total: number }>();
@@ -408,7 +473,7 @@ export default function AppClient({
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
             <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück{firstName ? `, ${firstName}` : ""}</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(34px,4.4vw,52px)", letterSpacing: "-.03em", margin: "10px 0 12px", lineHeight: 1.05 }}>Wähle deine Prüfung</h1>
-            <p style={{ fontSize: "19px", color: "var(--muted)", margin: 0, maxWidth: "560px" }}>Starte da, wo du aufgehört hast — oder such dir ein neues Ziel. Weitere Prüfungen kommen bald dazu.</p>
+            <p style={{ fontSize: "19px", color: "var(--muted)", margin: 0, maxWidth: "560px" }}>Starte da, wo du aufgehört hast, oder such dir ein neues Ziel. Weitere Prüfungen kommen bald dazu.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "20px" }}>
             <button
@@ -426,7 +491,7 @@ export default function AppClient({
                 <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".03em", color: "var(--accent-strong)", background: "color-mix(in oklch, var(--accent) 13%, var(--bg))", padding: "5px 11px", borderRadius: "100px" }}>AKTIV</span>
               </div>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em", color: "var(--text)" }}>{examName}</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>Fachinformatiker/in — Abschlussprüfung Teil 2.</p>
+              <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>Fachinformatiker/in, Abschlussprüfung Teil 2.</p>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Fragen verfügbar</span>
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{questions.length}</span>
@@ -447,7 +512,7 @@ export default function AppClient({
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", background: "var(--bg-alt)", padding: "5px 11px", borderRadius: "100px" }}>BALD</span>
               </div>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em" }}>IHK Systemintegration</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Fachinformatiker/in — in Vorbereitung.</p>
+              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Fachinformatiker/in, in Vorbereitung.</p>
             </div>
 
             <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
@@ -461,7 +526,7 @@ export default function AppClient({
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", background: "var(--bg-alt)", padding: "5px 11px", borderRadius: "100px" }}>BALD</span>
               </div>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em" }}>Kaufmann/-frau E-Commerce</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Abschlussprüfung — in Vorbereitung.</p>
+              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Abschlussprüfung, in Vorbereitung.</p>
             </div>
 
             <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .24s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "220px", color: "var(--muted)" }}>
@@ -482,7 +547,7 @@ export default function AppClient({
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>IHK · Fachinformatiker/in</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>Anwendungsentwicklung</h1>
-            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>Bereite dich gezielt auf die Abschlussprüfung Teil 2 vor — Themen üben oder unter echten Bedingungen simulieren.</p>
+            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>Bereite dich gezielt auf die Abschlussprüfung Teil 2 vor: Themen üben oder unter echten Bedingungen simulieren.</p>
           </div>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
@@ -506,7 +571,7 @@ export default function AppClient({
             </div>
           </div>
 
-          {/* Wrong-questions review — only shown when there is something to fix. */}
+          {/* Wrong-questions review, only shown when there is something to fix. */}
           {wrongCount > 0 && (
             <button
               onClick={startWrongPractice}
@@ -521,7 +586,7 @@ export default function AppClient({
               </span>
               <span style={{ flex: 1 }}>
                 <span style={{ ...heading, display: "block", fontWeight: 600, fontSize: "18px", marginBottom: "3px" }}>Falsche Fragen üben</span>
-                <span style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>Wiederhole gezielt, was zuletzt nicht saß — bis es sitzt.</span>
+                <span style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>Wiederhole gezielt, was zuletzt nicht saß, bis es sitzt.</span>
               </span>
               <span style={{ ...heading, fontWeight: 700, fontSize: "15px", color: "var(--err-strong)", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", padding: "7px 14px", borderRadius: "100px", flexShrink: 0 }}>
                 {wrongCount} {wrongCount === 1 ? "Frage" : "Fragen"}
@@ -538,10 +603,10 @@ export default function AppClient({
                 <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
               </svg>
               <div style={{ ...heading, fontWeight: 600, fontSize: "22px", marginBottom: "6px" }}>Themen üben</div>
-              <div style={{ fontSize: "15px", opacity: 0.85, lineHeight: 1.5 }}>Entspannt lernen, ohne Zeitdruck — mit sofortigem Feedback.</div>
+              <div style={{ fontSize: "15px", opacity: 0.85, lineHeight: 1.5 }}>Entspannt lernen, ohne Zeitdruck, mit sofortigem Feedback.</div>
             </button>
             <button
-              onClick={startPractice}
+              onClick={startSimulation}
               className="pk-mode-secondary"
               style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .16s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             >
@@ -583,8 +648,13 @@ export default function AppClient({
               <div style={{ width: practicePct, height: "100%", background: "var(--accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
             </div>
             <div style={{ maxWidth: "820px", margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
-              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)" }}>{q?.topic ?? ""}</span>
-              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)", marginLeft: "auto" }}>{qCounter}</span>
+              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)" }}>{mode === "sim" ? "Prüfungssimulation" : (q?.topic ?? "")}</span>
+              {mode === "sim" && (
+                <span style={{ ...heading, fontSize: "14px", fontWeight: 700, color: secondsLeft <= 60 ? "var(--err-strong)" : "var(--accent-strong)", marginLeft: "auto" }}>
+                  {formatClock(secondsLeft)}
+                </span>
+              )}
+              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)", marginLeft: mode === "sim" ? undefined : "auto" }}>{qCounter}</span>
               <button
                 onClick={exitPractice}
                 aria-label="Verlassen"
@@ -606,11 +676,12 @@ export default function AppClient({
                   {q.options.map((o, i) => {
                     const isCorrect = o.isCorrect;
                     const chosen = i === selected;
+                    const reveal = answered && mode !== "sim";
                     let bg = "var(--surface)";
                     let border = "var(--border)";
                     let color = "var(--text)";
                     let opacity = 1;
-                    if (answered) {
+                    if (reveal) {
                       if (isCorrect) {
                         border = "var(--accent)";
                         bg = "color-mix(in oklch, var(--accent) 10%, var(--bg))";
@@ -621,6 +692,10 @@ export default function AppClient({
                         color = "var(--muted)";
                         opacity = 0.6;
                       }
+                    } else if (answered && chosen) {
+                      // Sim mode: show the pick was registered, no correctness.
+                      border = "var(--accent)";
+                      bg = "color-mix(in oklch, var(--accent) 8%, var(--bg))";
                     }
                     return (
                       <button
@@ -650,13 +725,13 @@ export default function AppClient({
                           {["A", "B", "C", "D"][i]}
                         </span>
                         <span style={{ flex: 1 }}>{o.text}</span>
-                        {answered && isCorrect && (
+                        {reveal && isCorrect && (
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="11" fill="var(--accent)" />
                             <path d="M7 12.5l3 3 6.5-7" stroke="var(--on-accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         )}
-                        {answered && chosen && !isCorrect && (
+                        {reveal && chosen && !isCorrect && (
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="11" fill="var(--err)" />
                             <path d="M8 8l8 8M16 8l-8 8" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
@@ -666,7 +741,7 @@ export default function AppClient({
                     );
                   })}
                 </div>
-                {answered && (
+                {answered && mode !== "sim" && (
                   <div style={{ animation: "pk-popIn .4s cubic-bezier(.16,1,.3,1) both", marginTop: "24px", display: "flex", gap: "13px", alignItems: "flex-start", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "16px", padding: "18px 20px" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: "2px" }}>
                       <circle cx="12" cy="12" r="9.5" stroke="var(--accent)" strokeWidth="2" />
@@ -679,14 +754,16 @@ export default function AppClient({
                   </div>
                 )}
                 <div style={{ marginTop: "auto", paddingTop: "40px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "9px 15px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
-                    <span key={xpBump} style={{ animation: "pk-xpGlow .6s ease", display: "grid", placeItems: "center" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z" fill="var(--accent)" />
-                      </svg>
-                    </span>
-                    <span style={{ ...heading, fontWeight: 700, fontSize: "16px", color: "var(--accent-strong)" }}>{xpDisplay.toLocaleString("de-DE")} XP</span>
-                  </div>
+                  {mode !== "sim" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "9px 15px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
+                      <span key={xpBump} style={{ animation: "pk-xpGlow .6s ease", display: "grid", placeItems: "center" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z" fill="var(--accent)" />
+                        </svg>
+                      </span>
+                      <span style={{ ...heading, fontWeight: 700, fontSize: "16px", color: "var(--accent-strong)" }}>{xpDisplay.toLocaleString("de-DE")} XP</span>
+                    </div>
+                  )}
                   {answered && (
                     <button
                       onClick={next}
@@ -706,16 +783,20 @@ export default function AppClient({
                 <p style={{ ...heading, fontSize: "22px", color: "var(--text)", marginBottom: "8px" }}>
                   {questions.length === 0
                     ? "Noch keine Fragen freigegeben"
-                    : mode === "wrong"
-                      ? "Keine falschen Fragen — stark!"
-                      : "Alles wiederholt für heute 🎉"}
+                    : mode === "sim"
+                      ? "Noch zu wenige Fragen für eine Simulation"
+                      : mode === "wrong"
+                        ? "Keine falschen Fragen, stark!"
+                        : "Alles wiederholt für heute 🎉"}
                 </p>
                 <p style={{ marginBottom: "24px" }}>
                   {questions.length === 0
                     ? "Sobald im Review Fragen freigegeben sind, erscheinen sie hier."
-                    : mode === "wrong"
-                      ? "Du hast aktuell keine offenen Fehler zum Wiederholen."
-                      : "Es sind gerade keine Fragen zur Wiederholung fällig. Schau später wieder vorbei."}
+                    : mode === "sim"
+                      ? "Der Fragenpool ist gerade leer. Schau später wieder vorbei."
+                      : mode === "wrong"
+                        ? "Du hast aktuell keine offenen Fehler zum Wiederholen."
+                        : "Es sind gerade keine Fragen zur Wiederholung fällig. Schau später wieder vorbei."}
                 </p>
                 <button onClick={exitPractice} className="pk-scale-btn-sm" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 22px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>Zurück</button>
               </div>
@@ -735,18 +816,22 @@ export default function AppClient({
                 <circle cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray="339" strokeDashoffset={ringOffset} style={{ animation: "pk-ringFill 1.1s cubic-bezier(.16,1,.3,1) both" }} />
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "42px", letterSpacing: "-.03em", lineHeight: 1 }}>{scorePct}%</span>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Ergebnis</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "42px", letterSpacing: "-.03em", lineHeight: 1 }}>{scorePct}{mode === "sim" ? "" : "%"}</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>{mode === "sim" ? "Punkte" : "Ergebnis"}</span>
               </div>
             </div>
             <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", background: passed ? "color-mix(in oklch, var(--accent) 14%, var(--bg))" : "color-mix(in oklch, var(--err) 14%, var(--bg))", color: passed ? "var(--accent-strong)" : "var(--err-strong)", fontSize: "14px", fontWeight: 700, marginBottom: "16px" }}>
-              {passed ? "Bestanden 🎯" : "Nicht bestanden"}
+              {mode === "sim" && gradeResult
+                ? `${passed ? "Bestanden" : "Nicht bestanden"} · Note ${gradeResult.grade} (${gradeResult.gradeLabel})`
+                : passed ? "Bestanden 🎯" : "Nicht bestanden"}
             </span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,44px)", letterSpacing: "-.03em", margin: "0 0 10px", lineHeight: 1.05 }}>
-              {passed ? "Stark — du hast bestanden!" : "Fast — dranbleiben!"}
+              {passed ? "Stark, du hast bestanden!" : "Fast geschafft, dranbleiben!"}
             </h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: "0 auto 40px", maxWidth: "460px" }}>
-              {correctCount} von {answeredTotal} Fragen richtig. {passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}
+              {mode === "sim"
+                ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Bestehensgrenze: ${PASS_THRESHOLD}).`
+                : `${correctCount} von ${answeredTotal} Fragen richtig. ${passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
             </p>
           </div>
           {topicScores.length > 0 && (
@@ -769,11 +854,11 @@ export default function AppClient({
           )}
           <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
             <button
-              onClick={startPractice}
+              onClick={mode === "sim" ? startSimulation : startPractice}
               className="pk-price-btn-ghost"
               style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
             >
-              Nochmal üben
+              {mode === "sim" ? "Erneut simulieren" : "Nochmal üben"}
             </button>
             <button
               onClick={backToOverview}
