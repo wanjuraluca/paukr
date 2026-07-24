@@ -108,7 +108,7 @@ export default function AuthClient() {
               <path d="M4 13.5L10 19L20 6" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <span style={{ ...heading, fontWeight: 700, fontSize: "22px", letterSpacing: "-.02em" }}>ExamHub</span>
+          <span style={{ ...heading, fontWeight: 700, fontSize: "22px", letterSpacing: "-.02em" }}>paukr</span>
         </a>
 
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "32px", boxShadow: "var(--shadow-lg)" }}>
