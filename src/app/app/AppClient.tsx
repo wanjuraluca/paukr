@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const PRODUCT_NAME = "ExamHub";
+const PRODUCT_NAME = "paukr";
 
 type Screen = "dashboard" | "detail" | "practice" | "result";
 
@@ -183,7 +183,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
         height: `${size}px`,
         borderRadius: round,
         background: cols[i % 3],
-        animation: `eh-confetti ${1.6 + (i % 4) * 0.25}s ease-in ${delay}s both`,
+        animation: `pk-confetti ${1.6 + (i % 4) * 0.25}s ease-in ${delay}s both`,
         pointerEvents: "none" as const,
         zIndex: 0,
       },
@@ -231,7 +231,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <button
                 onClick={goBack}
                 aria-label="Zurück"
-                className="eh-app-back"
+                className="pk-app-back"
                 style={{
                   width: "40px",
                   height: "40px",
@@ -268,7 +268,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
             <button
               onClick={toggleTheme}
               aria-label="Modus wechseln"
-              className="eh-theme-btn"
+              className="pk-theme-btn"
               style={{ width: "40px", height: "40px", borderRadius: "11px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform .18s, border-color .2s" }}
             >
               {isDark ? (
@@ -286,7 +286,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <button
                 aria-label="Profil"
                 onClick={() => setMenuOpen((o) => !o)}
-                className="eh-profile-btn"
+                className="pk-profile-btn"
                 style={{ ...heading, width: "40px", height: "40px", borderRadius: "50%", border: "1px solid var(--border)", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", cursor: "pointer", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "15px", transition: "transform .18s" }}
               >
                 {initialsOf(userName)}
@@ -316,7 +316,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
       {/* ===== SCREEN 1: DASHBOARD ===== */}
       {screen === "dashboard" && (
         <main style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
-          <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
             <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück, Tim</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(34px,4.4vw,52px)", letterSpacing: "-.03em", margin: "10px 0 12px", lineHeight: 1.05 }}>Wähle deine Prüfung</h1>
             <p style={{ fontSize: "19px", color: "var(--muted)", margin: 0, maxWidth: "560px" }}>Starte da, wo du aufgehört hast — oder such dir ein neues Ziel. Weitere Prüfungen kommen bald dazu.</p>
@@ -324,8 +324,8 @@ export default function AppClient({ examName, topics, questions, userName = "" }
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "20px" }}>
             <button
               onClick={openExam}
-              className="eh-exam-card"
-              style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .05s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "26px", display: "flex", flexDirection: "column", gap: 0, transition: "transform .25s, box-shadow .3s, border-color .3s" }}
+              className="pk-exam-card"
+              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .05s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "26px", display: "flex", flexDirection: "column", gap: 0, transition: "transform .25s, box-shadow .3s, border-color .3s" }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                 <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "color-mix(in oklch, var(--accent) 14%, var(--bg))", display: "grid", placeItems: "center" }}>
@@ -347,7 +347,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               </div>
             </button>
 
-            <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .12s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .12s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                 <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "var(--bg-alt)", display: "grid", placeItems: "center" }}>
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -361,7 +361,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Fachinformatiker/in — in Vorbereitung.</p>
             </div>
 
-            <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                 <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "var(--bg-alt)", display: "grid", placeItems: "center" }}>
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -375,7 +375,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Abschlussprüfung — in Vorbereitung.</p>
             </div>
 
-            <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .24s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "220px", color: "var(--muted)" }}>
+            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .24s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "220px", color: "var(--muted)" }}>
               <span style={{ width: "44px", height: "44px", borderRadius: "13px", border: "1px dashed var(--border)", display: "grid", placeItems: "center", marginBottom: "14px" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" />
@@ -390,12 +390,12 @@ export default function AppClient({ examName, topics, questions, userName = "" }
       {/* ===== SCREEN 2: EXAM DETAIL ===== */}
       {screen === "detail" && (
         <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
-          <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>IHK · Fachinformatiker/in</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>Anwendungsentwicklung</h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>Bereite dich gezielt auf die Abschlussprüfung Teil 2 vor — Themen üben oder unter echten Bedingungen simulieren.</p>
           </div>
-          <div style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
               <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: "conic-gradient(var(--accent) 0% 34%, var(--bg-alt) 34% 100%)" }} />
               <div style={{ position: "absolute", inset: "10px", borderRadius: "50%", background: "var(--surface)", display: "grid", placeItems: "center" }}>
@@ -419,8 +419,8 @@ export default function AppClient({ examName, topics, questions, userName = "" }
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
             <button
               onClick={startPractice}
-              className="eh-mode-primary"
-              style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .1s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--accent)", color: "var(--on-accent)", border: "none", borderRadius: "20px", padding: "28px", boxShadow: "0 10px 30px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
+              className="pk-mode-primary"
+              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .1s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--accent)", color: "var(--on-accent)", border: "none", borderRadius: "20px", padding: "28px", boxShadow: "0 10px 30px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
             >
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ marginBottom: "16px" }}>
                 <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -430,8 +430,8 @@ export default function AppClient({ examName, topics, questions, userName = "" }
             </button>
             <button
               onClick={startPractice}
-              className="eh-mode-secondary"
-              style={{ animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .16s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
+              className="pk-mode-secondary"
+              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .16s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             >
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ marginBottom: "16px" }}>
                 <circle cx="12" cy="13" r="8" stroke="var(--accent)" strokeWidth="2" />
@@ -441,13 +441,13 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>Zeitlimit, echtes Prüfungsformat, ehrliche Auswertung.</div>
             </button>
           </div>
-          <h2 style={{ ...heading, animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", fontWeight: 600, fontSize: "20px", letterSpacing: "-.01em", margin: "0 0 18px" }}>Themengebiete</h2>
+          <h2 style={{ ...heading, animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", fontWeight: 600, fontSize: "20px", letterSpacing: "-.01em", margin: "0 0 18px" }}>Themengebiete</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "14px" }}>
             {topics.map((t) => (
               <button
                 key={t.name}
                 onClick={startPractice}
-                className="eh-topic-card"
+                className="pk-topic-card"
                 style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px", transition: "transform .22s, border-color .25s, box-shadow .3s" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
@@ -476,7 +476,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <button
                 onClick={exitPractice}
                 aria-label="Verlassen"
-                className="eh-practice-exit"
+                className="pk-practice-exit"
                 style={{ width: "38px", height: "38px", borderRadius: "11px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform .18s, border-color .2s" }}
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
@@ -555,7 +555,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
                   })}
                 </div>
                 {answered && (
-                  <div style={{ animation: "eh-popIn .4s cubic-bezier(.16,1,.3,1) both", marginTop: "24px", display: "flex", gap: "13px", alignItems: "flex-start", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "16px", padding: "18px 20px" }}>
+                  <div style={{ animation: "pk-popIn .4s cubic-bezier(.16,1,.3,1) both", marginTop: "24px", display: "flex", gap: "13px", alignItems: "flex-start", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "16px", padding: "18px 20px" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: "2px" }}>
                       <circle cx="12" cy="12" r="9.5" stroke="var(--accent)" strokeWidth="2" />
                       <path d="M12 11v5M12 8h.01" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
@@ -568,7 +568,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
                 )}
                 <div style={{ marginTop: "auto", paddingTop: "40px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "9px 15px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
-                    <span key={xpBump} style={{ animation: "eh-xpGlow .6s ease", display: "grid", placeItems: "center" }}>
+                    <span key={xpBump} style={{ animation: "pk-xpGlow .6s ease", display: "grid", placeItems: "center" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z" fill="var(--accent)" />
                       </svg>
@@ -578,8 +578,8 @@ export default function AppClient({ examName, topics, questions, userName = "" }
                   {answered && (
                     <button
                       onClick={next}
-                      className="eh-scale-btn"
-                      style={{ animation: "eh-popIn .35s cubic-bezier(.16,1,.3,1) both", marginLeft: "auto", border: "none", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "14px 26px", borderRadius: "14px", background: "var(--accent)", color: "var(--on-accent)", display: "flex", alignItems: "center", gap: "9px", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+                      className="pk-scale-btn"
+                      style={{ animation: "pk-popIn .35s cubic-bezier(.16,1,.3,1) both", marginLeft: "auto", border: "none", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "14px 26px", borderRadius: "14px", background: "var(--accent)", color: "var(--on-accent)", display: "flex", alignItems: "center", gap: "9px", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
                     >
                       {nextLabel}
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -593,7 +593,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <div style={{ textAlign: "center", color: "var(--muted)", paddingTop: "80px" }}>
                 <p style={{ ...heading, fontSize: "22px", color: "var(--text)", marginBottom: "8px" }}>Noch keine Fragen freigegeben</p>
                 <p style={{ marginBottom: "24px" }}>Sobald im Review Fragen freigegeben sind, erscheinen sie hier.</p>
-                <button onClick={exitPractice} className="eh-scale-btn-sm" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 22px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>Zurück</button>
+                <button onClick={exitPractice} className="pk-scale-btn-sm" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 22px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>Zurück</button>
               </div>
             )}
           </main>
@@ -604,11 +604,11 @@ export default function AppClient({ examName, topics, questions, userName = "" }
       {screen === "result" && (
         <main style={{ position: "relative", maxWidth: "760px", margin: "0 auto", padding: "56px 28px 90px", overflow: "hidden" }}>
           {passed && confetti.map((c) => <span key={c.key} style={c.style} />)}
-          <div style={{ position: "relative", zIndex: 1, textAlign: "center", animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) both" }}>
+          <div style={{ position: "relative", zIndex: 1, textAlign: "center", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both" }}>
             <div style={{ position: "relative", width: "150px", height: "150px", margin: "0 auto 26px" }}>
               <svg width="150" height="150" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)" }}>
                 <circle cx="60" cy="60" r="54" fill="none" stroke="var(--bg-alt)" strokeWidth="11" />
-                <circle cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray="339" strokeDashoffset={ringOffset} style={{ animation: "eh-ringFill 1.1s cubic-bezier(.16,1,.3,1) both" }} />
+                <circle cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray="339" strokeDashoffset={ringOffset} style={{ animation: "pk-ringFill 1.1s cubic-bezier(.16,1,.3,1) both" }} />
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ ...heading, fontWeight: 700, fontSize: "42px", letterSpacing: "-.03em", lineHeight: 1 }}>{scorePct}%</span>
@@ -626,7 +626,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
             </p>
           </div>
           {topicScores.length > 0 && (
-            <div style={{ position: "relative", zIndex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "28px", marginBottom: "28px", animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .08s both" }}>
+            <div style={{ position: "relative", zIndex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "28px", marginBottom: "28px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .08s both" }}>
               <h2 style={{ ...heading, fontWeight: 600, fontSize: "18px", margin: "0 0 22px", letterSpacing: "-.01em" }}>Nach Themengebiet</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 {topicScores.map((t) => (
@@ -643,17 +643,17 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               </div>
             </div>
           )}
-          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "eh-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
+          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
             <button
               onClick={startPractice}
-              className="eh-price-btn-ghost"
+              className="pk-price-btn-ghost"
               style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
             >
               Nochmal üben
             </button>
             <button
               onClick={backToOverview}
-              className="eh-scale-btn-sm"
+              className="pk-scale-btn-sm"
               style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
             >
               Zurück zur Übersicht

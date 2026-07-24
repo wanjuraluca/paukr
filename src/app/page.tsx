@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
-const PRODUCT_NAME = "ExamHub";
+const PRODUCT_NAME = "paukr";
 
 // Repeated star used in the testimonial ratings.
 function Star() {
@@ -147,21 +147,21 @@ export default function Home() {
           <div style={{ display: "flex", alignItems: "center", gap: "28px", marginRight: "auto" }}>
             <a
               href="#features"
-              className="eh-navlink"
+              className="pk-navlink"
               style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
             >
               Features
             </a>
             <a
               href="#how"
-              className="eh-navlink"
+              className="pk-navlink"
               style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
             >
               So funktioniert&apos;s
             </a>
             <a
               href="#pricing"
-              className="eh-navlink"
+              className="pk-navlink"
               style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
             >
               Preise
@@ -171,7 +171,7 @@ export default function Home() {
             <button
               onClick={toggleTheme}
               aria-label="Modus wechseln"
-              className="eh-theme-btn"
+              className="pk-theme-btn"
               style={{
                 width: "40px",
                 height: "40px",
@@ -208,7 +208,7 @@ export default function Home() {
             </button>
             <button
               onClick={goToApp}
-              className="eh-btn-accent"
+              className="pk-btn-accent"
               style={{
                 border: "none",
                 cursor: "pointer",
@@ -260,7 +260,7 @@ export default function Home() {
             borderRadius: "50%",
             background: "radial-gradient(circle, color-mix(in oklch, var(--accent) 22%, transparent), transparent 70%)",
             filter: "blur(40px)",
-            animation: "eh-pulseglow 7s ease-in-out infinite",
+            animation: "pk-pulseglow 7s ease-in-out infinite",
             pointerEvents: "none",
             zIndex: 0,
           }}
@@ -268,7 +268,7 @@ export default function Home() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <div
             style={{
-              animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both",
+              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
@@ -298,7 +298,7 @@ export default function Home() {
           <h1
             style={{
               ...heading,
-              animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .06s both",
+              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .06s both",
               fontWeight: 700,
               fontSize: "clamp(40px,5.4vw,66px)",
               lineHeight: 1.03,
@@ -313,7 +313,7 @@ export default function Home() {
           </h1>
           <p
             style={{
-              animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .12s both",
+              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .12s both",
               fontSize: "19px",
               color: "var(--muted)",
               maxWidth: "500px",
@@ -327,7 +327,7 @@ export default function Home() {
           </p>
           <div
             style={{
-              animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .18s both",
+              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .18s both",
               display: "flex",
               flexWrap: "wrap",
               gap: "14px",
@@ -336,7 +336,7 @@ export default function Home() {
           >
             <button
               onClick={goToApp}
-              className="eh-btn-accent-lg"
+              className="pk-btn-accent-lg"
               style={{
                 border: "none",
                 cursor: "pointer",
@@ -361,7 +361,7 @@ export default function Home() {
             </button>
             <button
               onClick={goToApp}
-              className="eh-btn-ghost"
+              className="pk-btn-ghost"
               style={{
                 cursor: "pointer",
                 fontFamily: "var(--font-hanken), sans-serif",
@@ -387,7 +387,7 @@ export default function Home() {
           </div>
           <div
             style={{
-              animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .24s both",
+              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .24s both",
               marginTop: "30px",
               display: "flex",
               alignItems: "center",
@@ -408,8 +408,8 @@ export default function Home() {
         </div>
 
         {/* product mockup */}
-        <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .2s both", position: "relative", zIndex: 1 }}>
-          <div style={{ animation: "eh-floaty 7s ease-in-out infinite" }}>
+        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .2s both", position: "relative", zIndex: 1 }}>
+          <div style={{ animation: "pk-floaty 7s ease-in-out infinite" }}>
             <div
               style={{
                 background: "var(--surface)",
@@ -493,7 +493,7 @@ export default function Home() {
                 display: "flex",
                 alignItems: "center",
                 gap: "11px",
-                animation: "eh-floaty2 5.5s ease-in-out infinite",
+                animation: "pk-floaty2 5.5s ease-in-out infinite",
               }}
             >
               <span style={{ width: "38px", height: "38px", borderRadius: "11px", background: "color-mix(in oklch, var(--accent) 14%, var(--bg))", display: "grid", placeItems: "center" }}>
@@ -511,7 +511,7 @@ export default function Home() {
       </header>
 
       {/* ===== LOGO STRIP ===== */}
-      <section style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "1000px", margin: "0 auto", padding: "20px 28px 60px" }}>
+      <section style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "1000px", margin: "0 auto", padding: "20px 28px 60px" }}>
         <p style={{ textAlign: "center", fontSize: "13px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", fontWeight: 600, margin: "0 0 22px" }}>
           Eingesetzt in Ausbildung &amp; Weiterbildung
         </p>
@@ -526,7 +526,7 @@ export default function Home() {
 
       {/* ===== FEATURES ===== */}
       <section id="features" style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 28px" }}>
-        <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 56px", textAlign: "center" }}>
+        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 56px", textAlign: "center" }}>
           <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Features</span>
           <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 14px", lineHeight: 1.1 }}>
             Alles, was du zum Bestehen brauchst
@@ -584,12 +584,12 @@ export default function Home() {
           ].map((f) => (
             <div
               key={f.title}
-              className="eh-feature-card"
+              className="pk-feature-card"
               onAnimationEnd={(e) => {
                 e.currentTarget.style.animation = "none";
               }}
               style={{
-                animation: `eh-revUp .7s cubic-bezier(.16,1,.3,1) ${f.delay} both`,
+                animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${f.delay} both`,
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
                 borderRadius: "20px",
@@ -610,7 +610,7 @@ export default function Home() {
       {/* ===== HOW IT WORKS ===== */}
       <section id="how" style={{ background: "var(--bg-alt)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", transition: "background .5s" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "88px 28px" }}>
-          <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 60px", textAlign: "center" }}>
+          <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 60px", textAlign: "center" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>So funktioniert&apos;s</span>
             <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 0", lineHeight: 1.1 }}>
               In drei Schritten zur bestandenen Prüfung
@@ -622,7 +622,7 @@ export default function Home() {
               { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich durch Fragen und volle Simulationen — in deinem Tempo, mit sofortigem Feedback." },
               { delay: ".24s", num: "03", title: "Bestehen", body: "Geh mit einem sicheren Gefühl in die echte Prüfung — du weißt genau, was dich erwartet." },
             ].map((s) => (
-              <div key={s.num} style={{ animation: `eh-revUp .7s cubic-bezier(.16,1,.3,1) ${s.delay} both` }}>
+              <div key={s.num} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${s.delay} both` }}>
                 <div style={{ ...heading, fontWeight: 700, fontSize: "15px", color: "var(--accent)", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
                   {s.num}
                   <span style={{ flex: 1, height: "1px", background: "var(--border)" }} />
@@ -637,7 +637,7 @@ export default function Home() {
 
       {/* ===== SOCIAL PROOF ===== */}
       <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "88px 28px" }}>
-        <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", marginBottom: "56px", textAlign: "center" }}>
+        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", marginBottom: "56px", textAlign: "center" }}>
           {[
             { value: "12.000+", label: "Fragen im Pool", border: false },
             { value: "8.500+", label: "Aktive Prüflinge", border: true },
@@ -674,7 +674,7 @@ export default function Home() {
               avatar: "var(--accent)",
             },
           ].map((t) => (
-            <div key={t.name} style={{ animation: `eh-revUp .7s cubic-bezier(.16,1,.3,1) ${t.delay} both`, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px" }}>
+            <div key={t.name} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${t.delay} both`, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px" }}>
               <Stars />
               <p style={{ fontSize: "16px", lineHeight: 1.6, margin: "0 0 20px", color: "var(--text)" }}>{t.quote}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -692,7 +692,7 @@ export default function Home() {
       {/* ===== PRICING ===== */}
       <section id="pricing" style={{ background: "var(--bg-alt)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", transition: "background .5s" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "88px 28px" }}>
-          <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "620px", margin: "0 auto 56px", textAlign: "center" }}>
+          <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "620px", margin: "0 auto 56px", textAlign: "center" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Preise</span>
             <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 14px", lineHeight: 1.1 }}>
               Starte kostenlos. Upgrade, wenn&apos;s ernst wird.
@@ -701,7 +701,7 @@ export default function Home() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "22px", alignItems: "stretch" }}>
             {/* Free */}
-            <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "34px" }}>
+            <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "34px" }}>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Free</h3>
               <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Zum Reinschnuppern &amp; für Basics.</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "26px" }}>
@@ -710,7 +710,7 @@ export default function Home() {
               </div>
               <button
                 onClick={goToApp}
-                className="eh-price-btn-ghost"
+                className="pk-price-btn-ghost"
                 style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
               >
                 Kostenlos starten
@@ -723,7 +723,7 @@ export default function Home() {
               </ul>
             </div>
             {/* Pro */}
-            <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) .1s both", position: "relative", background: "var(--surface)", border: "1.5px solid var(--accent)", borderRadius: "22px", padding: "34px", boxShadow: "0 20px 50px color-mix(in oklch, var(--accent) 18%, transparent)" }}>
+            <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .1s both", position: "relative", background: "var(--surface)", border: "1.5px solid var(--accent)", borderRadius: "22px", padding: "34px", boxShadow: "0 20px 50px color-mix(in oklch, var(--accent) 18%, transparent)" }}>
               <span style={{ position: "absolute", top: "-13px", left: "34px", padding: "5px 13px", borderRadius: "100px", background: "var(--accent)", color: "var(--on-accent)", fontSize: "12px", fontWeight: 700, letterSpacing: ".02em" }}>Beliebt</span>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Pro</h3>
               <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Für alle, die wirklich bestehen wollen.</p>
@@ -733,7 +733,7 @@ export default function Home() {
               </div>
               <button
                 onClick={goToApp}
-                className="eh-price-btn-accent"
+                className="pk-price-btn-accent"
                 style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
               >
                 Pro holen
@@ -753,8 +753,8 @@ export default function Home() {
 
       {/* ===== FINAL CTA ===== */}
       <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "100px 28px" }}>
-        <div style={{ animation: "eh-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", position: "relative", overflow: "hidden", borderRadius: "32px", border: "1px solid var(--border)", background: "var(--surface)", padding: "clamp(48px,7vw,88px) 28px", textAlign: "center" }}>
-          <div style={{ position: "absolute", top: "-120px", left: "50%", transform: "translateX(-50%)", width: "640px", height: "400px", background: "radial-gradient(circle, color-mix(in oklch, var(--accent) 22%, transparent), transparent 68%)", filter: "blur(30px)", animation: "eh-pulseglow 8s ease-in-out infinite", pointerEvents: "none" }} />
+        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", position: "relative", overflow: "hidden", borderRadius: "32px", border: "1px solid var(--border)", background: "var(--surface)", padding: "clamp(48px,7vw,88px) 28px", textAlign: "center" }}>
+          <div style={{ position: "absolute", top: "-120px", left: "50%", transform: "translateX(-50%)", width: "640px", height: "400px", background: "radial-gradient(circle, color-mix(in oklch, var(--accent) 22%, transparent), transparent 68%)", filter: "blur(30px)", animation: "pk-pulseglow 8s ease-in-out infinite", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
             <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(32px,4.4vw,54px)", letterSpacing: "-.03em", margin: "0 auto 18px", lineHeight: 1.05, maxWidth: "640px", textWrap: "balance" }}>
               Bereit, deine Prüfung entspannt anzugehen?
@@ -764,7 +764,7 @@ export default function Home() {
             </p>
             <button
               onClick={goToApp}
-              className="eh-cta-btn"
+              className="pk-cta-btn"
               style={{ border: "none", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "17px", padding: "16px 30px", borderRadius: "16px", background: "var(--accent)", color: "var(--on-accent)", display: "inline-flex", alignItems: "center", gap: "10px", boxShadow: "0 10px 30px color-mix(in oklch, var(--accent) 38%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
             >
               Jetzt kostenlos starten
@@ -794,19 +794,19 @@ export default function Home() {
               { label: "Datenschutz", href: "#" },
               { label: "Impressum", href: "#" },
             ].map((l) => (
-              <a key={l.label} href={l.href} className="eh-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
+              <a key={l.label} href={l.href} className="pk-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
                 {l.label}
               </a>
             ))}
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
-            <a href="#" aria-label="Social" className="eh-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
+            <a href="#" aria-label="Social" className="pk-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
                 <path d="M12 3c-2.5 3-2.5 15 0 18M12 3c2.5 3 2.5 15 0 18M3.5 9h17M3.5 15h17" stroke="currentColor" strokeWidth="1.4" />
               </svg>
             </a>
-            <a href="#" aria-label="Social" className="eh-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
+            <a href="#" aria-label="Social" className="pk-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                 <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.8" />
                 <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
