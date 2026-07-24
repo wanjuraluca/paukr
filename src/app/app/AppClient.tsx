@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { recordAttempt } from "./actions";
 
 const PRODUCT_NAME = "paukr";
 
+// How many questions one practice session pulls from the eligible pool.
+const SESSION_SIZE = 10;
+
 type Screen = "dashboard" | "detail" | "practice" | "result";
+// "practice" = due reviews + new questions; "wrong" = only questions the user
+// last got wrong (the "Falsche Fragen üben" mode).
+type PracticeMode = "practice" | "wrong";
 
 export interface QuizOption {
   text: string;
@@ -18,6 +25,10 @@ export interface QuizQuestion {
   q: string;
   expl: string | null;
   options: QuizOption[];
+  // Spaced-repetition metadata for this user (null / true when never seen).
+  dueAt: string | null;
+  lastCorrect: boolean | null;
+  isNew: boolean;
 }
 export interface TopicInfo {
   name: string;
@@ -28,6 +39,41 @@ interface Props {
   topics: TopicInfo[];
   questions: QuizQuestion[];
   userName?: string;
+  xpTotal?: number;
+  currentStreak?: number;
+}
+
+/**
+ * Builds a practice session from the full question pool. In "practice" mode it
+ * prioritises questions that are due for review (soonest first), then fills up
+ * with never-seen questions. In "wrong" mode it returns only questions the user
+ * last answered incorrectly.
+ */
+function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] {
+  if (mode === "wrong") {
+    return pool
+      .filter((q) => q.lastCorrect === false)
+      .sort((a, b) => dueTime(a) - dueTime(b));
+  }
+  const now = Date.now();
+  const due = pool
+    .filter((q) => !q.isNew && q.dueAt !== null && new Date(q.dueAt).getTime() <= now)
+    .sort((a, b) => dueTime(a) - dueTime(b));
+  const fresh = shuffleArr(pool.filter((q) => q.isNew));
+  return [...due, ...fresh].slice(0, SESSION_SIZE);
+}
+
+function dueTime(q: QuizQuestion): number {
+  return q.dueAt ? new Date(q.dueAt).getTime() : Number.POSITIVE_INFINITY;
+}
+
+function shuffleArr<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function initialsOf(name: string): string {
@@ -43,7 +89,14 @@ const passColor = (v: number) =>
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
-export default function AppClient({ examName, topics, questions, userName = "" }: Props) {
+export default function AppClient({
+  examName,
+  topics,
+  questions,
+  userName = "",
+  xpTotal = 0,
+  currentStreak = 0,
+}: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -51,11 +104,16 @@ export default function AppClient({ examName, topics, questions, userName = "" }
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [xp, setXp] = useState(1240);
-  const [xpDisplay, setXpDisplay] = useState(1240);
+  const [xp, setXp] = useState(xpTotal);
+  const [xpDisplay, setXpDisplay] = useState(xpTotal);
   const [xpBump, setXpBump] = useState(0);
   const [results, setResults] = useState<{ topic: string; correct: boolean }[]>([]);
+  // The questions for the current run, and which mode built it.
+  const [session, setSession] = useState<QuizQuestion[]>([]);
+  const [mode, setMode] = useState<PracticeMode>("practice");
   const rafRef = useRef<number | null>(null);
+  // When the current question was shown, to measure hesitation for SM-2.
+  const shownAtRef = useRef<number>(0);
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -66,8 +124,24 @@ export default function AppClient({ examName, topics, questions, userName = "" }
   }, []);
 
   const isDark = theme === "dark";
-  const total = questions.length;
-  const q = questions[qIndex];
+  const total = session.length;
+  const q = session[qIndex];
+
+  // How many questions the user last got wrong — drives the "Falsche Fragen"
+  // entry point and its badge.
+  const wrongCount = useMemo(
+    () => questions.filter((x) => x.lastCorrect === false).length,
+    [questions],
+  );
+  // Share of the pool the user has already seen at least once (coverage ring).
+  const seenPct = useMemo(() => {
+    if (questions.length === 0) return 0;
+    const seen = questions.filter((x) => !x.isNew).length;
+    return Math.round((seen / questions.length) * 100);
+  }, [questions]);
+
+  // First name for the greeting (before any space or @).
+  const firstName = userName.split(/[\s@]/)[0] ?? "";
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const enterSite = () => router.push("/");
@@ -81,8 +155,17 @@ export default function AppClient({ examName, topics, questions, userName = "" }
     setSelected(null);
     setAnswered(false);
     setResults([]);
+    shownAtRef.current = performance.now();
   };
   const startPractice = () => {
+    setMode("practice");
+    setSession(buildSession(questions, "practice"));
+    resetQuiz();
+    setScreen("practice");
+  };
+  const startWrongPractice = () => {
+    setMode("wrong");
+    setSession(buildSession(questions, "wrong"));
     resetQuiz();
     setScreen("practice");
   };
@@ -117,6 +200,11 @@ export default function AppClient({ examName, topics, questions, userName = "" }
     setAnswered(true);
     setResults((r) => [...r, { topic: q.topic, correct: opt.isCorrect }]);
     if (opt.isCorrect) animateXp(50);
+
+    // Persist the attempt + advance spaced repetition (fire-and-forget; the
+    // server is the source of truth on the next load).
+    const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
+    void recordAttempt(q.id, opt.isCorrect, responseMs);
   };
 
   const next = () => {
@@ -127,6 +215,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
     setQIndex((i) => i + 1);
     setSelected(null);
     setAnswered(false);
+    shownAtRef.current = performance.now();
   };
 
   const showHeader = screen !== "practice";
@@ -262,7 +351,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <span style={{ ...heading, fontWeight: 700, fontSize: "20px", letterSpacing: "-.02em" }}>{PRODUCT_NAME}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 6px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
-              <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>7</span>
+              <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>{currentStreak}</span>
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
             </div>
             <button
@@ -317,7 +406,7 @@ export default function AppClient({ examName, topics, questions, userName = "" }
       {screen === "dashboard" && (
         <main style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
-            <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück, Tim</span>
+            <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück{firstName ? `, ${firstName}` : ""}</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(34px,4.4vw,52px)", letterSpacing: "-.03em", margin: "10px 0 12px", lineHeight: 1.05 }}>Wähle deine Prüfung</h1>
             <p style={{ fontSize: "19px", color: "var(--muted)", margin: 0, maxWidth: "560px" }}>Starte da, wo du aufgehört hast — oder such dir ein neues Ziel. Weitere Prüfungen kommen bald dazu.</p>
           </div>
@@ -340,10 +429,10 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>Fachinformatiker/in — Abschlussprüfung Teil 2.</p>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Fragen verfügbar</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{total}</span>
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{questions.length}</span>
               </div>
               <div style={{ height: "7px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
-                <div style={{ width: "34%", height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
+                <div style={{ width: `${seenPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
               </div>
             </button>
 
@@ -397,14 +486,14 @@ export default function AppClient({ examName, topics, questions, userName = "" }
           </div>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
-              <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: "conic-gradient(var(--accent) 0% 34%, var(--bg-alt) 34% 100%)" }} />
+              <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: `conic-gradient(var(--accent) 0% ${seenPct}%, var(--bg-alt) ${seenPct}% 100%)` }} />
               <div style={{ position: "absolute", inset: "10px", borderRadius: "50%", background: "var(--surface)", display: "grid", placeItems: "center" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "22px" }}>34%</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "22px" }}>{seenPct}%</span>
               </div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>XP gesammelt</div>
-              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>1.240</div>
+              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xpTotal.toLocaleString("de-DE")}</div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>Aktuelle Serie</div>
@@ -412,10 +501,33 @@ export default function AppClient({ examName, topics, questions, userName = "" }
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2c1 3 3 4.5 3 7a3 3 0 0 1-6 0c0-1 .4-1.8 1-2.5C9 9 8 11 8 13a4 4 0 0 0 8 0c0-3.5-2-6.5-4-11Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>7 Tage</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>{currentStreak} {currentStreak === 1 ? "Tag" : "Tage"}</span>
               </div>
             </div>
           </div>
+
+          {/* Wrong-questions review — only shown when there is something to fix. */}
+          {wrongCount > 0 && (
+            <button
+              onClick={startWrongPractice}
+              className="pk-mode-secondary"
+              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .08s both", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--err) 8%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--err) 35%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "26px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
+            >
+              <span style={{ width: "44px", height: "44px", borderRadius: "13px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 8v5M12 16h.01" stroke="var(--err-strong)" strokeWidth="2.2" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="9.5" stroke="var(--err-strong)" strokeWidth="2" />
+                </svg>
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ ...heading, display: "block", fontWeight: 600, fontSize: "18px", marginBottom: "3px" }}>Falsche Fragen üben</span>
+                <span style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>Wiederhole gezielt, was zuletzt nicht saß — bis es sitzt.</span>
+              </span>
+              <span style={{ ...heading, fontWeight: 700, fontSize: "15px", color: "var(--err-strong)", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", padding: "7px 14px", borderRadius: "100px", flexShrink: 0 }}>
+                {wrongCount} {wrongCount === 1 ? "Frage" : "Fragen"}
+              </span>
+            </button>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
             <button
               onClick={startPractice}
@@ -591,8 +703,20 @@ export default function AppClient({ examName, topics, questions, userName = "" }
               </>
             ) : (
               <div style={{ textAlign: "center", color: "var(--muted)", paddingTop: "80px" }}>
-                <p style={{ ...heading, fontSize: "22px", color: "var(--text)", marginBottom: "8px" }}>Noch keine Fragen freigegeben</p>
-                <p style={{ marginBottom: "24px" }}>Sobald im Review Fragen freigegeben sind, erscheinen sie hier.</p>
+                <p style={{ ...heading, fontSize: "22px", color: "var(--text)", marginBottom: "8px" }}>
+                  {questions.length === 0
+                    ? "Noch keine Fragen freigegeben"
+                    : mode === "wrong"
+                      ? "Keine falschen Fragen — stark!"
+                      : "Alles wiederholt für heute 🎉"}
+                </p>
+                <p style={{ marginBottom: "24px" }}>
+                  {questions.length === 0
+                    ? "Sobald im Review Fragen freigegeben sind, erscheinen sie hier."
+                    : mode === "wrong"
+                      ? "Du hast aktuell keine offenen Fehler zum Wiederholen."
+                      : "Es sind gerade keine Fragen zur Wiederholung fällig. Schau später wieder vorbei."}
+                </p>
                 <button onClick={exitPractice} className="pk-scale-btn-sm" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 22px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>Zurück</button>
               </div>
             )}

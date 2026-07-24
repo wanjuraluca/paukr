@@ -3,9 +3,6 @@ import AppClient, { type QuizQuestion, type TopicInfo } from "./AppClient";
 
 export const dynamic = "force-dynamic";
 
-// How many questions one practice session pulls from the approved pool.
-const SESSION_SIZE = 10;
-
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -27,9 +24,19 @@ interface QuestionRow {
   topics: { name: string; exam_id: string };
   answer_options: { option_text: string; is_correct: boolean }[];
 }
+interface ReviewRow {
+  question_id: string;
+  due_at: string;
+  last_correct: boolean | null;
+  repetitions: number;
+}
 
 export default async function AppPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: exam } = await supabase
     .from("exams")
@@ -49,33 +56,58 @@ export default async function AppPage() {
       .eq("topics.exam_id", exam.id)
       .returns<QuestionRow[]>();
 
-    const all: QuizQuestion[] = (rows ?? []).map((r) => ({
-      id: r.id,
-      topic: r.topics.name,
-      q: r.question_text,
-      expl: r.explanation,
-      // Shuffle options so the correct answer's position carries no signal.
-      options: shuffle(
-        (r.answer_options ?? []).map((o) => ({
-          text: o.option_text,
-          isCorrect: o.is_correct,
-        })),
-      ),
-    }));
+    // The user's spaced-repetition state, keyed by question id.
+    const reviews = new Map<string, ReviewRow>();
+    if (user) {
+      const { data: rev } = await supabase
+        .from("question_reviews")
+        .select("question_id, due_at, last_correct, repetitions")
+        .eq("user_id", user.id)
+        .returns<ReviewRow[]>();
+      for (const r of rev ?? []) reviews.set(r.question_id, r);
+    }
+
+    questions = (rows ?? []).map((r) => {
+      const rev = reviews.get(r.id);
+      return {
+        id: r.id,
+        topic: r.topics.name,
+        q: r.question_text,
+        expl: r.explanation,
+        // Shuffle options so the correct answer's position carries no signal.
+        options: shuffle(
+          (r.answer_options ?? []).map((o) => ({
+            text: o.option_text,
+            isCorrect: o.is_correct,
+          })),
+        ),
+        dueAt: rev?.due_at ?? null,
+        lastCorrect: rev?.last_correct ?? null,
+        isNew: !rev,
+      };
+    });
 
     const counts = new Map<string, number>();
-    for (const a of all) counts.set(a.topic, (counts.get(a.topic) ?? 0) + 1);
+    for (const a of questions) counts.set(a.topic, (counts.get(a.topic) ?? 0) + 1);
     topics = (exam.topics ?? [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((t) => ({ name: t.name, count: counts.get(t.name) ?? 0 }));
-
-    questions = shuffle(all).slice(0, SESSION_SIZE);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Real per-user stats (fall back to zero for a brand-new profile).
+  let xpTotal = 0;
+  let currentStreak = 0;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("xp_total, current_streak")
+      .eq("id", user.id)
+      .single<{ xp_total: number; current_streak: number }>();
+    xpTotal = profile?.xp_total ?? 0;
+    currentStreak = profile?.current_streak ?? 0;
+  }
+
   const displayName =
     (user?.user_metadata?.display_name as string | undefined) ||
     user?.email ||
@@ -87,6 +119,8 @@ export default async function AppPage() {
       topics={topics}
       questions={questions}
       userName={displayName}
+      xpTotal={xpTotal}
+      currentStreak={currentStreak}
     />
   );
 }
