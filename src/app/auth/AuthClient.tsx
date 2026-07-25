@@ -21,6 +21,7 @@ export default function AuthClient() {
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isLogin, setIsLogin] = useState(true);
+  const [forgotMode, setForgotMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -28,6 +29,7 @@ export default function AuthClient() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [signupDone, setSignupDone] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -56,6 +58,21 @@ export default function AuthClient() {
         if (error) setError(friendlyError(error.message));
         else setSignupDone(true);
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
+      });
+      if (error) setError(friendlyError(error.message));
+      else setResetSent(true);
     } finally {
       setBusy(false);
     }
@@ -112,7 +129,54 @@ export default function AuthClient() {
         </a>
 
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "32px", boxShadow: "var(--shadow-lg)" }}>
-          {signupDone ? (
+          {forgotMode ? (
+            resetSent ? (
+              <div style={{ textAlign: "center" }}>
+                <h2 style={{ ...heading, fontWeight: 700, fontSize: "24px", margin: "0 0 10px" }}>Link verschickt</h2>
+                <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 24px", lineHeight: 1.5 }}>
+                  Wenn ein Konto mit <strong style={{ color: "var(--text)" }}>{email}</strong> existiert, haben wir dir einen Link zum Zurücksetzen deines Passworts geschickt.
+                </p>
+                <button
+                  onClick={() => { setForgotMode(false); setResetSent(false); setError(""); }}
+                  style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
+                >
+                  Zurück zur Anmeldung
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ textAlign: "center", marginBottom: "22px" }}>
+                  <h2 style={{ ...heading, fontWeight: 700, fontSize: "24px", margin: "0 0 6px" }}>Passwort zurücksetzen</h2>
+                  <p style={{ color: "var(--muted)", fontSize: "14px", margin: 0 }}>Gib deine E-Mail ein, wir schicken dir einen Link.</p>
+                </div>
+                <form onSubmit={handleForgotSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)" }}>E-Mail</label>
+                    <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="du@beispiel.de" style={inputStyle} />
+                  </div>
+                  {error && (
+                    <div style={{ borderRadius: "12px", border: "1px solid color-mix(in oklch, var(--err) 45%, var(--border))", background: "color-mix(in oklch, var(--err) 10%, var(--bg))", color: "var(--err-strong)", padding: "10px 14px", fontSize: "14px" }}>
+                      {error}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    style={{ width: "100%", cursor: busy ? "default" : "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", opacity: busy ? 0.7 : 1 }}
+                  >
+                    {busy ? "Moment…" : "Link schicken"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotMode(false); setError(""); }}
+                    style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px", borderRadius: "13px", background: "transparent", color: "var(--muted)", border: "none" }}
+                  >
+                    Zurück zur Anmeldung
+                  </button>
+                </form>
+              </>
+            )
+          ) : signupDone ? (
             <div style={{ textAlign: "center" }}>
               <h2 style={{ ...heading, fontWeight: 700, fontSize: "24px", margin: "0 0 10px" }}>Bestätige deine E-Mail</h2>
               <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 24px", lineHeight: 1.5 }}>
@@ -178,7 +242,18 @@ export default function AuthClient() {
                   <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="du@beispiel.de" style={inputStyle} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)" }}>Passwort</label>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)" }}>Passwort</label>
+                    {isLogin && (
+                      <button
+                        type="button"
+                        onClick={() => { setForgotMode(true); setError(""); }}
+                        style={{ cursor: "pointer", background: "none", border: "none", padding: 0, color: "var(--accent-strong)", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif" }}
+                      >
+                        Passwort vergessen?
+                      </button>
+                    )}
+                  </div>
                   <div style={{ position: "relative" }}>
                     <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: "60px" }} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
