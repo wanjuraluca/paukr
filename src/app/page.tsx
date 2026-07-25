@@ -727,8 +727,9 @@ export default function Home() {
             {[
               { label: "Features", href: "#features" },
               { label: "Preise", href: "#pricing" },
-              { label: "Datenschutz", href: "#" },
-              { label: "Impressum", href: "#" },
+              { label: "Nutzungsbedingungen", href: "/agb" },
+              { label: "Datenschutz", href: "/datenschutz" },
+              { label: "Impressum", href: "/impressum" },
             ].map((l) => (
               <a key={l.label} href={l.href} className="pk-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
                 {l.label}
@@ -752,7 +753,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
-          © 2026 {PRODUCT_NAME} · Arbeitstitel, alle Inhalte sind Platzhalter.
+          © 2026 {PRODUCT_NAME}. Alle Rechte vorbehalten.
         </div>
       </footer>
     </div>
