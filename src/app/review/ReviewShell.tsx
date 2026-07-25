@@ -25,6 +25,7 @@ export default function ReviewShell({ children }: { children: React.ReactNode })
       <button
         onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
         aria-label="Modus wechseln"
+        className="pk-theme-btn"
         style={{
           position: "fixed",
           top: "20px",
@@ -39,6 +40,7 @@ export default function ReviewShell({ children }: { children: React.ReactNode })
           cursor: "pointer",
           display: "grid",
           placeItems: "center",
+          transition: "transform .18s, border-color .2s",
         }}
       >
         {isDark ? (
