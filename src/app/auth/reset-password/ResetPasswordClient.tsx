@@ -6,7 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
-function friendlyError(message: string) {
+const GENERIC_ERROR = "Etwas ist schiefgelaufen. Bitte versuch es gleich nochmal.";
+
+function friendlyError(message: unknown): string {
+  if (typeof message !== "string" || message.trim() === "") return GENERIC_ERROR;
   if (message.toLowerCase().includes("password")) return "Das Passwort muss mindestens 6 Zeichen haben.";
   return message;
 }
@@ -40,6 +43,8 @@ export default function ResetPasswordClient() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) setError(friendlyError(error.message));
       else setDone(true);
+    } catch {
+      setError(GENERIC_ERROR);
     } finally {
       setBusy(false);
     }
