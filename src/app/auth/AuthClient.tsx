@@ -6,10 +6,16 @@ import { createClient } from "@/lib/supabase/client";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
-function friendlyError(message: string) {
+const GENERIC_ERROR = "Etwas ist schiefgelaufen. Bitte versuch es gleich nochmal.";
+
+function friendlyError(message: unknown): string {
+  if (typeof message !== "string" || message.trim() === "") return GENERIC_ERROR;
   if (message === "Invalid login credentials") return "E-Mail oder Passwort ist falsch.";
   if (message === "User already registered") return "Mit dieser E-Mail existiert bereits ein Konto.";
   if (message.toLowerCase().includes("password")) return "Das Passwort muss mindestens 6 Zeichen haben.";
+  if (message.toLowerCase().includes("sending confirmation email") || message.toLowerCase().includes("sending email")) {
+    return "Die Bestätigungsmail konnte gerade nicht verschickt werden. Bitte versuch es in ein paar Minuten erneut.";
+  }
   return message;
 }
 
@@ -58,6 +64,8 @@ export default function AuthClient() {
         if (error) setError(friendlyError(error.message));
         else setSignupDone(true);
       }
+    } catch {
+      setError(GENERIC_ERROR);
     } finally {
       setBusy(false);
     }
@@ -73,6 +81,8 @@ export default function AuthClient() {
       });
       if (error) setError(friendlyError(error.message));
       else setResetSent(true);
+    } catch {
+      setError(GENERIC_ERROR);
     } finally {
       setBusy(false);
     }
