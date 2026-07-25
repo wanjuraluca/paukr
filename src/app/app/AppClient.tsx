@@ -709,12 +709,12 @@ export default function AppClient({
           )}
           <h2 style={{ ...heading, animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", fontWeight: 600, fontSize: "20px", letterSpacing: "-.01em", margin: "0 0 18px" }}>Themengebiete</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "14px" }}>
-            {topics.map((t) => (
+            {topics.map((t, i) => (
               <button
                 key={t.name}
                 onClick={startPractice}
                 className="pk-topic-card"
-                style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px", transition: "transform .22s, border-color .25s, box-shadow .3s" }}
+                style={{ animation: `pk-revUp .6s cubic-bezier(.16,1,.3,1) ${(i * 0.06).toFixed(2)}s both`, textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px", transition: "transform .22s, border-color .25s, box-shadow .3s" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                   <span style={{ ...heading, fontWeight: 600, fontSize: "16px", color: "var(--text)" }}>{t.name}</span>
@@ -759,7 +759,8 @@ export default function AppClient({
           <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "60px 28px 40px", display: "flex", flexDirection: "column" }}>
             {q ? (
               <>
-                <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)", marginBottom: "16px" }}>Frage {qIndex + 1}</span>
+                <div key={q.id} style={{ animation: "pk-revUp .45s cubic-bezier(.16,1,.3,1) both" }}>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)", marginBottom: "16px", display: "block" }}>Frage {qIndex + 1}</span>
                 <h1 style={{ ...heading, fontWeight: 600, fontSize: "clamp(24px,3.2vw,34px)", letterSpacing: "-.02em", lineHeight: 1.25, margin: "0 0 40px", maxWidth: "680px" }}>{q.q}</h1>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   {q.options.map((o, i) => {
@@ -830,6 +831,7 @@ export default function AppClient({
                       </button>
                     );
                   })}
+                </div>
                 </div>
                 {answered && mode !== "sim" && (
                   <div style={{ animation: "pk-popIn .4s cubic-bezier(.16,1,.3,1) both", marginTop: "24px", display: "flex", gap: "13px", alignItems: "flex-start", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "16px", padding: "18px 20px" }}>
