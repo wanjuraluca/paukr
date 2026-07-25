@@ -114,7 +114,8 @@ export default async function ReviewPage() {
             <form action={approveAll} style={{ marginLeft: "auto" }}>
               <button
                 type="submit"
-                style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 16px", borderRadius: "11px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}
+                className="pk-review-btn-accent"
+                style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 16px", borderRadius: "11px", background: "var(--accent)", color: "var(--on-accent)", border: "none", transition: "transform .18s, box-shadow .2s" }}
               >
                 Alle Entwürfe freigeben
               </button>
@@ -206,13 +207,13 @@ export default async function ReviewPage() {
                     <>
                       <form action={approveQuestion}>
                         <input type="hidden" name="id" value={q.id} />
-                        <button type="submit" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>
+                        <button type="submit" className="pk-review-btn-accent" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--accent)", color: "var(--on-accent)", border: "none", transition: "transform .18s, box-shadow .2s" }}>
                           Freigeben
                         </button>
                       </form>
                       <form action={rejectQuestion}>
                         <input type="hidden" name="id" value={q.id} />
-                        <button type="submit" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--surface)", color: "var(--err-strong)", border: "1px solid color-mix(in oklch, var(--err) 45%, var(--border))" }}>
+                        <button type="submit" className="pk-review-btn-ghost" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--surface)", color: "var(--err-strong)", border: "1px solid color-mix(in oklch, var(--err) 45%, var(--border))", transition: "transform .18s, border-color .2s" }}>
                           Ablehnen
                         </button>
                       </form>
@@ -220,7 +221,7 @@ export default async function ReviewPage() {
                   ) : (
                     <form action={unapproveQuestion}>
                       <input type="hidden" name="id" value={q.id} />
-                      <button type="submit" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                      <button type="submit" className="pk-review-btn-ghost" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px 18px", borderRadius: "11px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}>
                         Freigabe zurückziehen
                       </button>
                     </form>

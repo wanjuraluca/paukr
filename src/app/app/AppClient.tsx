@@ -476,14 +476,16 @@ export default function AppClient({
                   {isAdmin && (
                     <button
                       onClick={() => router.push("/review")}
-                      style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none" }}
+                      className="pk-menu-item"
+                      style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none", transition: "background .18s, transform .12s" }}
                     >
                       Fragen-Review
                     </button>
                   )}
                   <button
                     onClick={signOut}
-                    style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none" }}
+                    className="pk-menu-item"
+                    style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none", transition: "background .18s, transform .12s" }}
                   >
                     Abmelden
                   </button>
@@ -788,6 +790,7 @@ export default function AppClient({
                       <button
                         key={i}
                         onClick={() => select(i)}
+                        className="pk-option-btn"
                         style={{
                           display: "flex",
                           alignItems: "center",

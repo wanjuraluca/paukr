@@ -279,3 +279,32 @@ body {
 .pk-scale-btn-sm:active {
   transform: scale(0.97);
 }
+.pk-menu-item:hover {
+  background: var(--bg-alt);
+}
+.pk-menu-item:active {
+  transform: scale(0.98);
+}
+.pk-option-btn:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.pk-option-btn:active {
+  transform: scale(0.98);
+}
+
+/* ===== Review-page interactions ===== */
+.pk-review-btn-accent:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--accent) 40%, transparent);
+}
+.pk-review-btn-accent:active {
+  transform: scale(0.97);
+}
+.pk-review-btn-ghost:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.pk-review-btn-ghost:active {
+  transform: scale(0.97);
+}
