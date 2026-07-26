@@ -427,11 +427,7 @@ export default function AppClient({
               onClick={enterSite}
               style={{ display: "flex", alignItems: "center", gap: "10px", marginRight: "auto", cursor: "pointer" }}
             >
-              <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent)", display: "grid", placeItems: "center", boxShadow: "0 4px 14px color-mix(in oklch, var(--accent) 40%, transparent)" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 13.5L10 19L20 6" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
+              <img src="/logo.svg" width={30} height={30} alt="" style={{ borderRadius: "9px", boxShadow: "0 4px 14px color-mix(in oklch, var(--accent) 40%, transparent)" }} />
               <span style={{ ...heading, fontWeight: 700, fontSize: "20px", letterSpacing: "-.02em" }}>{PRODUCT_NAME}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 6px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
