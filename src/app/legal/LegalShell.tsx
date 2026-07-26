@@ -25,11 +25,7 @@ export default function LegalShell({ children }: { children: React.ReactNode }) 
       <header style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "var(--text)" }}>
-            <span style={{ width: "28px", height: "28px", borderRadius: "8px", background: "var(--accent)", display: "grid", placeItems: "center" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M4 13.5L10 19L20 6" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
+            <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />
             <span style={{ fontFamily: "var(--font-space), sans-serif", fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>paukr</span>
           </a>
           <a href="/" style={{ marginLeft: "auto", fontSize: "14px", color: "var(--muted)", textDecoration: "none" }}>← Zurück zur Startseite</a>

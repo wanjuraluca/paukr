@@ -81,11 +81,7 @@ export default function ResetPasswordClient() {
     >
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <a href="/" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", textDecoration: "none", color: "var(--text)", marginBottom: "28px" }}>
-          <span style={{ width: "32px", height: "32px", borderRadius: "9px", background: "var(--accent)", display: "grid", placeItems: "center", boxShadow: "0 4px 14px color-mix(in oklch, var(--accent) 40%, transparent)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M4 13.5L10 19L20 6" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <img src="/logo.svg" width={32} height={32} alt="" style={{ borderRadius: "9px", boxShadow: "0 4px 14px color-mix(in oklch, var(--accent) 40%, transparent)" }} />
           <span style={{ ...heading, fontWeight: 700, fontSize: "22px", letterSpacing: "-.02em" }}>paukr</span>
         </a>
 
