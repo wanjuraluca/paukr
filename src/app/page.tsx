@@ -119,7 +119,7 @@ export default function Home() {
               {PRODUCT_NAME}
             </span>
           </a>
-          <div style={{ display: "flex", alignItems: "center", gap: "28px", marginRight: "auto" }}>
+          <div className="pk-nav-links" style={{ display: "flex", alignItems: "center", gap: "28px", marginRight: "auto" }}>
             <a
               href="#features"
               className="pk-navlink"
@@ -183,7 +183,7 @@ export default function Home() {
             </button>
             <button
               onClick={goToApp}
-              className="pk-btn-accent"
+              className="pk-btn-accent pk-cta-btn-nav"
               style={{
                 border: "none",
                 cursor: "pointer",
@@ -201,7 +201,7 @@ export default function Home() {
                 transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s",
               }}
             >
-              Kostenlos starten
+              <span className="pk-cta-label">Kostenlos starten</span>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -214,6 +214,7 @@ export default function Home() {
 
       {/* ===== HERO ===== */}
       <header
+        className="pk-hero-grid"
         style={{
           position: "relative",
           maxWidth: "1200px",
@@ -385,6 +386,7 @@ export default function Home() {
         <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .2s both", position: "relative", zIndex: 1 }}>
           <div style={{ animation: "pk-floaty 7s ease-in-out infinite" }}>
             <div
+              className="pk-hero-mockup"
               style={{
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
@@ -597,7 +599,7 @@ export default function Home() {
 
       {/* ===== FACTS ===== */}
       <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "88px 28px" }}>
-        <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
+        <div className="pk-stats-grid" style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
           {[
             { value: QUESTION_COUNT_LABEL, label: "Original-Fragen im Pool", border: false },
             { value: "4", label: "Themengebiete", border: true },
