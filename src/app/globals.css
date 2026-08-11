@@ -14,6 +14,10 @@
 
 body {
   font-family: var(--font-hanken), system-ui, sans-serif;
+  /* Decorative blur/glow blobs are positioned wider than their container on
+     purpose; clip at the body edge so they don't create a horizontal
+     scrollbar on narrow (mobile) viewports. */
+  overflow-x: hidden;
 }
 
 /* ===== paukr landing design tokens ===== */
@@ -307,4 +311,31 @@ body {
 }
 .pk-review-btn-ghost:active {
   transform: scale(0.97);
+}
+
+/* ===== Mobile responsive fixes ===== */
+@media (max-width: 720px) {
+  .pk-nav-links {
+    display: none !important;
+  }
+  .pk-cta-label {
+    display: none !important;
+  }
+  .pk-cta-btn-nav {
+    padding: 11px 14px !important;
+  }
+}
+@media (max-width: 560px) {
+  .pk-hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pk-hero-mockup {
+    margin-left: 0 !important;
+  }
+  .pk-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .pk-stats-grid > div:nth-child(3) {
+    border-left: none !important;
+  }
 }
