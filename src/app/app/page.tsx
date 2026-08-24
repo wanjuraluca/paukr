@@ -23,6 +23,7 @@ interface QuestionRow {
   question_text: string;
   explanation: string | null;
   question_type: "single" | "multiple";
+  difficulty: number;
   topics: { name: string; exam_id: string };
   answer_options: { id: string; option_text: string; is_correct: boolean }[];
 }
@@ -53,7 +54,7 @@ export default async function AppPage() {
     const { data: rows } = await supabase
       .from("questions")
       .select(
-        "id, question_text, explanation, question_type, topics!inner(name, exam_id), answer_options(id, option_text, is_correct)",
+        "id, question_text, explanation, question_type, difficulty, topics!inner(name, exam_id), answer_options(id, option_text, is_correct)",
       )
       .eq("topics.exam_id", exam.id)
       .returns<QuestionRow[]>();
@@ -77,6 +78,7 @@ export default async function AppPage() {
         q: r.question_text,
         expl: r.explanation,
         questionType: r.question_type,
+        difficulty: r.difficulty ?? 1,
         // Shuffle options so the correct answer's position carries no signal.
         options: shuffle(
           (r.answer_options ?? []).map((o) => ({
@@ -111,6 +113,8 @@ export default async function AppPage() {
   // How many exam simulations the user has passed in a row (trailing streak of
   // finished attempts scoring >= 50 points), for the "prüfungsbereit" tracker.
   let simPassStreak = 0;
+  // Deepest finished Blitz run for this exam, shown next to the mode buttons.
+  let bestBlitzDepth = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -143,8 +147,19 @@ export default async function AppPage() {
         else break; // A fail (or unscored) ends the trailing streak.
       }
 
+      const { data: bestRun } = await supabase
+        .from("blitz_runs")
+        .select("depth")
+        .eq("user_id", user.id)
+        .eq("exam_id", exam.id)
+        .order("depth", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ depth: number }>();
+      bestBlitzDepth = bestRun?.depth ?? 0;
+
       if (!isPro) {
-        const [{ count: practiceCount }, { count: simCount }] = await Promise.all([
+        const [{ count: practiceCount }, { count: simCount }, { count: blitzCount }] =
+          await Promise.all([
           supabase
             .from("practice_sessions")
             .select("id", { count: "exact", head: true })
@@ -155,8 +170,13 @@ export default async function AppPage() {
             .select("id", { count: "exact", head: true })
             .eq("user_id", user.id)
             .eq("exam_id", exam.id),
+          supabase
+            .from("blitz_runs")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("exam_id", exam.id),
         ]);
-        const used = (practiceCount ?? 0) + (simCount ?? 0);
+        const used = (practiceCount ?? 0) + (simCount ?? 0) + (blitzCount ?? 0);
         triesLeft = Math.max(0, FREE_TRY_LIMIT - used);
       }
     }
@@ -177,6 +197,7 @@ export default async function AppPage() {
       xpTotal={xpTotal}
       currentStreak={currentStreak}
       simPassStreak={simPassStreak}
+      bestBlitzDepth={bestBlitzDepth}
       isAdmin={isAdmin}
       isPro={isPro}
       triesLeft={triesLeft}

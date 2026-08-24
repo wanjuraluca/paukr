@@ -342,6 +342,35 @@ body {
   transform: scale(0.98);
 }
 
+/* ===== Blitz-mode interactions =====
+   The markup sets background, border, box-shadow and color inline, and inline
+   styles outrank a plain stylesheet rule, so those need !important here.
+   Transforms do not. */
+.pk-blitz-card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow) !important;
+}
+.pk-blitz-card:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.pk-boon-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.pk-boon-card:active {
+  transform: scale(0.98);
+}
+.pk-blitz-tool:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in oklch, var(--accent) 14%, var(--surface)) !important;
+  border-color: var(--accent-strong) !important;
+}
+.pk-blitz-tool:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
 /* ===== Review-page interactions ===== */
 .pk-review-btn-accent:hover {
   transform: scale(1.02);

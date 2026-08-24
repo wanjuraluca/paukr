@@ -9,9 +9,26 @@ import {
   recordExamAnswer,
   finishExamAttempt,
   startPracticeSession,
+  startBlitzRun,
+  finishBlitzRun,
 } from "./actions";
 import { FREE_TRY_LIMIT } from "@/lib/limits";
 import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
+import {
+  BLITZ_START_SECONDS,
+  BLITZ_BOON_INTERVAL,
+  emptyBoons,
+  gainSeconds,
+  penaltySeconds,
+  drawBoonOffer,
+  applyBoon,
+  pickQuestion,
+  fiftyFiftyHidden,
+  formatBlitzClock,
+  type BoonDef,
+  type BoonId,
+  type BoonState,
+} from "@/lib/blitz";
 
 const PRODUCT_NAME = "paukr";
 
@@ -26,7 +43,20 @@ const SIM_UNLOCK_PCT = 80;
 // Passing the simulation this many times in a row marks the user as ready.
 const READINESS_STREAK = 5;
 
-type Screen = "dashboard" | "detail" | "practice" | "result" | "paywall";
+type Screen =
+  | "dashboard"
+  | "detail"
+  | "practice"
+  | "result"
+  | "paywall"
+  // Blitz, the timed roguelike run: the run itself, the boon pick between
+  // stages (clock paused) and the summary once the clock hit zero.
+  | "blitz"
+  | "boon"
+  | "blitzover";
+// How often the Blitz clock is re-read, in ms. The clock is never decremented,
+// every tick recomputes the remainder from a stored wall-clock deadline.
+const BLITZ_TICK_MS = 100;
 // "practice" = due reviews + new questions; "wrong" = only questions the user
 // last got wrong (the "Falsche Fragen üben" mode); "sim" = the timed,
 // graded exam simulation (all questions, once, no per-question feedback).
@@ -43,6 +73,8 @@ export interface QuizQuestion {
   q: string;
   expl: string | null;
   questionType: "single" | "multiple";
+  // 1 to 5, drives how deep into a Blitz run the question tends to show up.
+  difficulty: number;
   options: QuizOption[];
   // Spaced-repetition metadata for this user (null / true when never seen).
   dueAt: string | null;
@@ -62,6 +94,8 @@ interface Props {
   xpTotal?: number;
   currentStreak?: number;
   simPassStreak?: number;
+  // Deepest finished Blitz run for this exam.
+  bestBlitzDepth?: number;
   isAdmin?: boolean;
   isPro?: boolean;
   // Remaining free-tier session starts for this exam (only meaningful when
@@ -134,6 +168,7 @@ export default function AppClient({
   xpTotal = 0,
   currentStreak = 0,
   simPassStreak = 0,
+  bestBlitzDepth = 0,
   isAdmin = false,
   isPro = false,
   triesLeft = FREE_TRY_LIMIT,
@@ -171,7 +206,37 @@ export default function AppClient({
   // after a session start, without waiting for a full page reload.
   const [triesLeftState, setTriesLeftState] = useState(triesLeft);
   // Which mode was blocked by the paywall, only used to render its copy.
-  const [paywallMode, setPaywallMode] = useState<PracticeMode>("practice");
+  const [paywallMode, setPaywallMode] = useState<PracticeMode | "blitz">("practice");
+
+  // ===== Blitz run state =====
+  // The clock is the game, so it lives on a wall-clock deadline instead of a
+  // counter: blitzDeadlineRef holds the timestamp the run dies at, every tick
+  // just recomputes deadline - now. That makes it immune to interval drift and
+  // to background-tab throttling (a throttled tab simply catches up).
+  const blitzDeadlineRef = useRef(0);
+  // Remainder frozen while the boon screen is up, in ms.
+  const blitzRemainingRef = useRef(0);
+  const [blitzMsLeft, setBlitzMsLeft] = useState(BLITZ_START_SECONDS * 1000);
+  const [blitzTicking, setBlitzTicking] = useState(false);
+  // Depth (questions answered) and correct answers, mirrored into refs so the
+  // ticking interval and the finish call always read current values.
+  const [blitzDepth, setBlitzDepth] = useState(0);
+  const [blitzCorrect, setBlitzCorrect] = useState(0);
+  const blitzDepthRef = useRef(0);
+  const blitzCorrectRef = useRef(0);
+  const blitzEndedRef = useRef(false);
+  const blitzRunIdRef = useRef<string | null>(null);
+  const blitzUsedRef = useRef<Set<string>>(new Set());
+  const [boons, setBoons] = useState<BoonState>(emptyBoons());
+  const [boonOffer, setBoonOffer] = useState<BoonDef[]>([]);
+  const [blitzQ, setBlitzQ] = useState<QuizQuestion | null>(null);
+  const [blitzMulti, setBlitzMulti] = useState<number[]>([]);
+  // Option ids struck out by 50:50 on the current question.
+  const [blitzHidden, setBlitzHidden] = useState<string[]>([]);
+  const [blitzFlash, setBlitzFlash] = useState<
+    { key: number; text: string; good: boolean } | null
+  >(null);
+  const [bestDepth, setBestDepth] = useState(bestBlitzDepth);
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -294,6 +359,205 @@ export default function AppClient({
     if (examAttemptId) void finishExamAttempt(examAttemptId, correctCount, total);
     setScreen("result");
   };
+  // ===== Blitz =====
+  // Moves the deadline by `ms` and returns the fresh remainder, so the caller
+  // can react to a wrong answer that just killed the run.
+  const blitzShiftDeadline = (ms: number): number => {
+    blitzDeadlineRef.current += ms;
+    const left = blitzDeadlineRef.current - Date.now();
+    setBlitzMsLeft(Math.max(0, left));
+    return left;
+  };
+
+  // Ends the run for good: stops the clock, writes the depth, and blocks every
+  // later answer through blitzEndedRef.
+  const endBlitzRun = (target: Screen = "blitzover") => {
+    if (blitzEndedRef.current) return;
+    blitzEndedRef.current = true;
+    setBlitzTicking(false);
+    setBlitzMsLeft(0);
+    const depth = blitzDepthRef.current;
+    const correct = blitzCorrectRef.current;
+    setBestDepth((b) => Math.max(b, depth));
+    if (blitzRunIdRef.current) {
+      void finishBlitzRun(blitzRunIdRef.current, depth, correct);
+    }
+    setScreen(target);
+  };
+
+  const drawBlitzQuestion = (depth: number) => {
+    const picked = pickQuestion(questions, depth, blitzUsedRef.current);
+    if (picked) blitzUsedRef.current.add(picked.id);
+    setBlitzQ(picked ?? null);
+    setBlitzMulti([]);
+    setBlitzHidden([]);
+    shownAtRef.current = performance.now();
+  };
+
+  const startBlitz = async () => {
+    if (questions.length === 0) return;
+    if (!isPro && triesLeftState <= 0) {
+      setPaywallMode("blitz");
+      setScreen("paywall");
+      return;
+    }
+    const res = await startBlitzRun(examId);
+    if (!res.ok) {
+      setPaywallMode("blitz");
+      setScreen("paywall");
+      return;
+    }
+    if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
+    blitzRunIdRef.current = res.runId ?? null;
+    blitzEndedRef.current = false;
+    blitzDepthRef.current = 0;
+    blitzCorrectRef.current = 0;
+    blitzUsedRef.current = new Set();
+    setBlitzDepth(0);
+    setBlitzCorrect(0);
+    setBoons(emptyBoons());
+    setBoonOffer([]);
+    setBlitzFlash(null);
+    drawBlitzQuestion(0);
+    blitzDeadlineRef.current = Date.now() + BLITZ_START_SECONDS * 1000;
+    setBlitzMsLeft(BLITZ_START_SECONDS * 1000);
+    setScreen("blitz");
+    setBlitzTicking(true);
+  };
+
+  // Freezes the clock and opens the boon pick. Freezing is the whole point: a
+  // choice made against a running clock is not a choice.
+  const openBoonPick = (state: BoonState) => {
+    blitzRemainingRef.current = Math.max(0, blitzDeadlineRef.current - Date.now());
+    setBlitzTicking(false);
+    setBlitzMsLeft(blitzRemainingRef.current);
+    setBoonOffer(drawBoonOffer(state));
+    setScreen("boon");
+  };
+
+  const chooseBoon = (id: BoonId) => {
+    if (blitzEndedRef.current) return;
+    const { boons: next, instantSeconds } = applyBoon(boons, id);
+    setBoons(next);
+    const resumeMs = blitzRemainingRef.current + instantSeconds * 1000;
+    blitzDeadlineRef.current = Date.now() + resumeMs;
+    setBlitzMsLeft(resumeMs);
+    setBoonOffer([]);
+    drawBlitzQuestion(blitzDepthRef.current);
+    setScreen("blitz");
+    setBlitzTicking(true);
+  };
+
+  /** Scores one Blitz answer, moves the clock and advances the run. */
+  const resolveBlitzAnswer = (correct: boolean, optionIds: string[]) => {
+    if (blitzEndedRef.current || !blitzQ) return;
+
+    const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
+    void recordAttempt(blitzQ.id, correct, responseMs, optionIds);
+
+    const depth = blitzDepthRef.current;
+    let deltaSeconds = 0;
+    let nextBoons = boons;
+    let flashText: string;
+    if (correct) {
+      deltaSeconds = gainSeconds(depth, boons);
+      blitzCorrectRef.current += 1;
+      setBlitzCorrect(blitzCorrectRef.current);
+      flashText = `+${deltaSeconds}s`;
+    } else if (boons.shield > 0) {
+      nextBoons = { ...boons, shield: boons.shield - 1 };
+      setBoons(nextBoons);
+      flashText = "Schild hält";
+    } else {
+      deltaSeconds = -penaltySeconds(boons);
+      flashText = `${deltaSeconds}s`;
+    }
+    setBlitzFlash({ key: Date.now(), text: flashText, good: correct });
+
+    const newDepth = depth + 1;
+    blitzDepthRef.current = newDepth;
+    setBlitzDepth(newDepth);
+
+    const left = blitzShiftDeadline(deltaSeconds * 1000);
+    if (left <= 0) {
+      endBlitzRun();
+      return;
+    }
+    if (newDepth % BLITZ_BOON_INTERVAL === 0) {
+      openBoonPick(nextBoons);
+      return;
+    }
+    drawBlitzQuestion(newDepth);
+  };
+
+  const blitzPick = (i: number) => {
+    if (!blitzQ || blitzEndedRef.current) return;
+    const opt = blitzQ.options[i];
+    if (!opt || blitzHidden.includes(opt.id)) return;
+    if (blitzQ.questionType === "multiple") {
+      setBlitzMulti((cur) =>
+        cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i],
+      );
+      return;
+    }
+    resolveBlitzAnswer(opt.isCorrect, [opt.id]);
+  };
+
+  const blitzSubmitMulti = () => {
+    if (!blitzQ || blitzEndedRef.current || blitzMulti.length === 0) return;
+    const picked = new Set(blitzMulti);
+    const correctSet = new Set(
+      blitzQ.options.map((o, i) => (o.isCorrect ? i : -1)).filter((i) => i >= 0),
+    );
+    const isCorrect =
+      picked.size === correctSet.size && [...picked].every((i) => correctSet.has(i));
+    resolveBlitzAnswer(
+      isCorrect,
+      blitzMulti.map((i) => blitzQ.options[i].id),
+    );
+  };
+
+  // 50:50 strikes two wrong options, never a correct one, and drops them from
+  // an already-checked multi selection so nothing invisible stays picked.
+  const useFifty = () => {
+    if (!blitzQ || boons.fifty <= 0 || blitzHidden.length > 0) return;
+    const hidden = fiftyFiftyHidden(blitzQ.options);
+    if (hidden.length === 0) return;
+    setBoons({ ...boons, fifty: boons.fifty - 1 });
+    setBlitzHidden(hidden);
+    setBlitzMulti((cur) => cur.filter((i) => !hidden.includes(blitzQ.options[i].id)));
+  };
+
+  // Skipping costs a charge, no time and no depth: the question is simply
+  // replaced by the next one.
+  const useSkip = () => {
+    if (!blitzQ || boons.skip <= 0 || blitzEndedRef.current) return;
+    setBoons({ ...boons, skip: boons.skip - 1 });
+    drawBlitzQuestion(blitzDepthRef.current);
+  };
+
+  const exitBlitz = () => endBlitzRun("detail");
+
+  // The Blitz clock. Every tick re-reads the stored deadline against the wall
+  // clock, so a missed, late or throttled tick cannot make the clock lie: it
+  // simply catches up. The interval is cleared on unmount, when the run stops
+  // ticking (end of run, boon pick) and when the screen changes, so a finished
+  // or abandoned run can never fire another state update.
+  useEffect(() => {
+    if (!blitzTicking || screen !== "blitz") return;
+    const tick = () => {
+      const left = blitzDeadlineRef.current - Date.now();
+      if (left <= 0) {
+        endBlitzRun();
+        return;
+      }
+      setBlitzMsLeft(left);
+    };
+    tick();
+    const id = setInterval(tick, BLITZ_TICK_MS);
+    return () => clearInterval(id);
+  }, [blitzTicking, screen]);
+
   const exitPractice = () => setScreen("detail");
   const backToOverview = () => setScreen("dashboard");
   const goBack = () => setScreen((s) => (s === "detail" ? "dashboard" : "detail"));
@@ -381,8 +645,14 @@ export default function AppClient({
     shownAtRef.current = performance.now();
   };
 
-  const showHeader = screen !== "practice";
-  const showBack = screen === "detail" || screen === "result" || screen === "paywall";
+  const blitzSecondsLeft = blitzMsLeft / 1000;
+  const blitzDanger = blitzSecondsLeft <= 10;
+  const showHeader = screen !== "practice" && screen !== "blitz" && screen !== "boon";
+  const showBack =
+    screen === "detail" ||
+    screen === "result" ||
+    screen === "paywall" ||
+    screen === "blitzover";
   const practicePct =
     total > 0
       ? Math.round(((qIndex + (answered ? 1 : 0)) / total) * 100) + "%"
@@ -756,6 +1026,32 @@ export default function AppClient({
             </button>
           </div>
 
+          {/* Blitz: the timed roguelike run. Sits next to the two classic modes
+              and carries the player's best depth for this exam. */}
+          <button
+            onClick={() => void startBlitz()}
+            disabled={questions.length === 0}
+            className="pk-blitz-card"
+            style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", width: "100%", textAlign: "left", cursor: questions.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--accent) 9%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--accent) 38%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "40px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
+            onAnimationEnd={(e) => { e.currentTarget.style.animation = "none"; }}
+          >
+            <span style={{ width: "44px", height: "44px", borderRadius: "13px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z" fill="var(--accent-strong)" />
+              </svg>
+            </span>
+            <span style={{ flex: 1 }}>
+              <span style={{ ...heading, display: "block", fontWeight: 600, fontSize: "18px", marginBottom: "3px" }}>Blitz</span>
+              <span style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>
+                Eine Uhr, ein Lauf. Richtige Antworten geben Zeit, falsche nehmen sie. Alle {BLITZ_BOON_INTERVAL} Fragen wählst du einen Vorteil.
+              </span>
+            </span>
+            <span style={{ textAlign: "right", flexShrink: 0 }}>
+              <span style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "var(--muted)" }}>Beste Tiefe</span>
+              <span style={{ ...heading, fontWeight: 700, fontSize: "22px", color: "var(--accent-strong)" }}>{bestDepth}</span>
+            </span>
+          </button>
+
           {/* Unlock progress (while locked) or exam-readiness tracker (once
               unlocked): the Fahrschul-app style consistency loop. */}
           {!simUnlocked ? (
@@ -1114,6 +1410,244 @@ export default function AppClient({
         </main>
       )}
 
+      {/* ===== SCREEN 6: BLITZ RUN ===== */}
+      {screen === "blitz" && (
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: "128px" }}>
+                <span
+                  style={{ ...heading, fontWeight: 700, fontSize: "34px", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: blitzDanger ? "var(--err-strong)" : "var(--accent-strong)", transition: "color .2s" }}
+                  aria-live="off"
+                >
+                  {formatBlitzClock(blitzMsLeft)}
+                </span>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)" }}>s</span>
+                {blitzFlash && (
+                  <span
+                    key={blitzFlash.key}
+                    style={{ ...heading, animation: "pk-popIn .35s cubic-bezier(.16,1,.3,1) both", fontWeight: 700, fontSize: "16px", marginLeft: "4px", color: blitzFlash.good ? "var(--accent)" : "var(--err-strong)" }}
+                  >
+                    {blitzFlash.text}
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)", marginLeft: "auto" }}>
+                Tiefe {blitzDepth} · {blitzCorrect} richtig
+              </span>
+              <button
+                onClick={exitBlitz}
+                aria-label="Lauf beenden"
+                className="pk-practice-exit"
+                style={{ width: "38px", height: "38px", borderRadius: "11px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform .18s, border-color .2s" }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            {/* The clock as a bar, capped at the starting value so a long run
+                keeps a readable scale. Colour and number carry the same
+                information, so nothing is lost without motion. */}
+            <div style={{ height: "4px", background: "var(--bg-alt)" }}>
+              <div style={{ width: `${Math.min(100, (blitzSecondsLeft / BLITZ_START_SECONDS) * 100)}%`, height: "100%", background: blitzDanger ? "var(--err)" : "var(--accent)", transition: "width .12s linear, background .2s" }} />
+            </div>
+          </div>
+          <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "34px 28px 40px", display: "flex", flexDirection: "column" }}>
+            {/* Boons in hand. Consumables show their charges, the two usable
+                ones are buttons. */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px", minHeight: "40px" }}>
+              {boons.tailwind > 0 && (
+                <span className="pk-boon-chip" style={{ padding: "8px 14px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)", fontSize: "13.5px", fontWeight: 600 }}>Rückenwind ×{boons.tailwind}</span>
+              )}
+              {boons.toughness > 0 && (
+                <span className="pk-boon-chip" style={{ padding: "8px 14px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)", fontSize: "13.5px", fontWeight: 600 }}>Zähigkeit ×{boons.toughness}</span>
+              )}
+              {boons.risk && (
+                <span className="pk-boon-chip" style={{ padding: "8px 14px", borderRadius: "100px", border: "1px solid color-mix(in oklch, var(--err) 40%, var(--border))", background: "color-mix(in oklch, var(--err) 10%, var(--surface))", color: "var(--err-strong)", fontSize: "13.5px", fontWeight: 700 }}>Risiko</span>
+              )}
+              {boons.shield > 0 && (
+                <span className="pk-boon-chip" style={{ padding: "8px 14px", borderRadius: "100px", border: "1px solid color-mix(in oklch, var(--accent) 40%, var(--border))", background: "color-mix(in oklch, var(--accent) 10%, var(--surface))", color: "var(--accent-strong)", fontSize: "13.5px", fontWeight: 700 }}>Schild ×{boons.shield}</span>
+              )}
+              {boons.fifty > 0 && (
+                <button
+                  onClick={useFifty}
+                  disabled={blitzHidden.length > 0}
+                  className="pk-blitz-tool"
+                  style={{ cursor: blitzHidden.length > 0 ? "not-allowed" : "pointer", opacity: blitzHidden.length > 0 ? 0.5 : 1, fontFamily: "inherit", padding: "8px 14px", borderRadius: "100px", border: "1px solid var(--accent)", background: "var(--surface)", color: "var(--accent-strong)", fontSize: "13.5px", fontWeight: 700, transition: "transform .18s, background .2s, border-color .2s" }}
+                >
+                  50:50 ×{boons.fifty}
+                </button>
+              )}
+              {boons.skip > 0 && (
+                <button
+                  onClick={useSkip}
+                  className="pk-blitz-tool"
+                  style={{ cursor: "pointer", fontFamily: "inherit", padding: "8px 14px", borderRadius: "100px", border: "1px solid var(--accent)", background: "var(--surface)", color: "var(--accent-strong)", fontSize: "13.5px", fontWeight: 700, transition: "transform .18s, background .2s, border-color .2s" }}
+                >
+                  Überspringen ×{boons.skip}
+                </button>
+              )}
+            </div>
+
+            {blitzQ ? (
+              <>
+                <div key={blitzQ.id}>
+                  <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)", marginBottom: "12px", display: "block" }}>{blitzQ.topic}</span>
+                  <h1 style={{ ...heading, fontWeight: 600, fontSize: "clamp(22px,3vw,31px)", letterSpacing: "-.02em", lineHeight: 1.25, margin: "0 0 32px", maxWidth: "680px" }}>{blitzQ.q}</h1>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {blitzQ.options.map((opt, i) => {
+                      const isMulti = blitzQ.questionType === "multiple";
+                      const struck = blitzHidden.includes(opt.id);
+                      const chosen = isMulti && blitzMulti.includes(i);
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => blitzPick(i)}
+                          disabled={struck}
+                          className="pk-option-btn"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "14px",
+                            textAlign: "left",
+                            width: "100%",
+                            cursor: struck ? "not-allowed" : "pointer",
+                            fontFamily: "var(--font-hanken), sans-serif",
+                            fontWeight: 500,
+                            fontSize: "16.5px",
+                            padding: "16px 18px",
+                            borderRadius: "15px",
+                            background: chosen ? "color-mix(in oklch, var(--accent) 8%, var(--bg))" : "var(--surface)",
+                            color: struck ? "var(--muted)" : "var(--text)",
+                            border: `1.5px solid ${chosen ? "var(--accent)" : "var(--border)"}`,
+                            opacity: struck ? 0.4 : 1,
+                            textDecoration: struck ? "line-through" : "none",
+                            transition: "transform .18s, border-color .2s, background .25s, opacity .25s",
+                          }}
+                        >
+                          <span style={{ ...heading, width: "26px", height: "26px", borderRadius: isMulti ? "7px" : "8px", border: "1.5px solid var(--border)", display: "grid", placeItems: "center", fontWeight: 600, fontSize: "13px", flexShrink: 0, background: chosen ? "var(--accent)" : "var(--bg)" }}>
+                            {isMulti ? (
+                              chosen ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                  <path d="M5 12.5l4.5 4.5L19 7" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : null
+                            ) : (
+                              ["A", "B", "C", "D"][i]
+                            )}
+                          </span>
+                          <span style={{ flex: 1 }}>{opt.text}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {blitzQ.questionType === "multiple" && (
+                  <div style={{ marginTop: "28px", display: "flex" }}>
+                    <button
+                      onClick={blitzSubmitMulti}
+                      disabled={blitzMulti.length === 0}
+                      className="pk-scale-btn"
+                      style={{ marginLeft: "auto", border: "none", cursor: blitzMulti.length === 0 ? "not-allowed" : "pointer", opacity: blitzMulti.length === 0 ? 0.5 : 1, fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "14px 26px", borderRadius: "14px", background: "var(--accent)", color: "var(--on-accent)", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+                    >
+                      Prüfen
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign: "center", color: "var(--muted)", paddingTop: "60px" }}>
+                <p style={{ ...heading, fontSize: "22px", color: "var(--text)", marginBottom: "8px" }}>Keine Fragen verfügbar</p>
+                <button onClick={exitBlitz} className="pk-scale-btn-sm" style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 22px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", transition: "transform .2s" }}>Zurück</button>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
+
+      {/* ===== SCREEN 7: BOON PICK (clock is paused here) ===== */}
+      {screen === "boon" && (
+        <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
+          <div style={{ width: "100%", maxWidth: "900px" }}>
+            <div style={{ textAlign: "center", marginBottom: "34px" }}>
+              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Tiefe {blitzDepth} erreicht</span>
+              <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,38px)", letterSpacing: "-.03em", margin: "8px 0 10px" }}>Wähle einen Vorteil</h1>
+              <p style={{ fontSize: "16px", color: "var(--muted)", margin: 0 }}>
+                Die Uhr steht still, solange du wählst. Es bleiben {formatBlitzClock(blitzMsLeft)} Sekunden.
+              </p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, boonOffer.length)},1fr)`, gap: "16px" }}>
+              {boonOffer.map((b, i) => (
+                <button
+                  key={b.id}
+                  onClick={() => chooseBoon(b.id)}
+                  className="pk-boon-card"
+                  style={{ animation: `pk-popIn .4s cubic-bezier(.16,1,.3,1) ${(i * 0.07).toFixed(2)}s both`, textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "20px", padding: "26px 24px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
+                  onAnimationEnd={(e) => { e.currentTarget.style.animation = "none"; }}
+                >
+                  <span style={{ width: "42px", height: "42px", borderRadius: "13px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", display: "grid", placeItems: "center", marginBottom: "16px" }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z" fill="var(--accent-strong)" />
+                    </svg>
+                  </span>
+                  <span style={{ ...heading, display: "block", fontWeight: 600, fontSize: "19px", marginBottom: "8px" }}>{b.label}</span>
+                  <span style={{ display: "block", fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>{b.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* ===== SCREEN 8: BLITZ SUMMARY ===== */}
+      {screen === "blitzover" && (
+        <main style={{ maxWidth: "620px", margin: "0 auto", padding: "70px 28px 90px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+            <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9.5" stroke="var(--err-strong)" strokeWidth="2" />
+                <path d="M12 7v5.5l3.5 2" stroke="var(--err-strong)" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
+            <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,34px)", letterSpacing: "-.03em", margin: "0 0 10px" }}>Zeit abgelaufen</h1>
+            <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 28px", lineHeight: 1.55 }}>
+              {blitzDepth > bestBlitzDepth
+                ? "Neue Bestmarke. Der nächste Lauf geht tiefer."
+                : "Der nächste Lauf geht tiefer."}
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "30px" }}>
+              {[
+                { label: "Tiefe", value: blitzDepth },
+                { label: "Richtig", value: blitzCorrect },
+                { label: "Beste Tiefe", value: bestDepth },
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "16px", padding: "18px 12px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)", marginBottom: "4px" }}>{stat.label}</div>
+                  <div style={{ ...heading, fontWeight: 700, fontSize: "28px", letterSpacing: "-.02em", color: "var(--accent-strong)" }}>{stat.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <button
+                onClick={() => void startBlitz()}
+                className="pk-price-btn-ghost"
+                style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
+              >
+                Nochmal
+              </button>
+              <button
+                onClick={() => setScreen("detail")}
+                className="pk-scale-btn-sm"
+                style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+              >
+                Zurück zur Prüfung
+              </button>
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* ===== SCREEN 5: PAYWALL ===== */}
       {screen === "paywall" && (
         <main style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
@@ -1128,7 +1662,7 @@ export default function AppClient({
               Deine kostenlosen Versuche sind aufgebraucht
             </h1>
             <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 26px", lineHeight: 1.55 }}>
-              Du hast die {FREE_TRY_LIMIT} kostenlosen {paywallMode === "sim" ? "Prüfungssimulationen" : "Lernsitzungen"} für {examName} bereits genutzt.
+              Du hast die {FREE_TRY_LIMIT} kostenlosen {paywallMode === "sim" ? "Prüfungssimulationen" : paywallMode === "blitz" ? "Läufe" : "Lernsitzungen"} für {examName} bereits genutzt.
               Mit Pro übst du unbegrenzt weiter, ohne Limit.
             </p>
 

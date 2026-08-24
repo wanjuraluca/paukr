@@ -15,7 +15,7 @@ async function triesUsed(
   userId: string,
   examId: string,
 ): Promise<number> {
-  const [practice, sim] = await Promise.all([
+  const [practice, sim, blitz] = await Promise.all([
     supabase
       .from("practice_sessions")
       .select("id", { count: "exact", head: true })
@@ -26,8 +26,13 @@ async function triesUsed(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("exam_id", examId),
+    supabase
+      .from("blitz_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("exam_id", examId),
   ]);
-  return (practice.count ?? 0) + (sim.count ?? 0);
+  return (practice.count ?? 0) + (sim.count ?? 0) + (blitz.count ?? 0);
 }
 
 async function isPro(
@@ -263,6 +268,64 @@ export async function startPracticeSession(examId: string): Promise<StartPractic
   if (pro) return { ok: true };
   const used = await triesUsed(supabase, user.id, examId);
   return { ok: true, triesLeft: Math.max(0, FREE_TRY_LIMIT - used) };
+}
+
+export interface StartBlitzResult {
+  ok: boolean;
+  runId?: string;
+  limitReached?: boolean;
+  triesLeft?: number;
+}
+
+/**
+ * Opens a Blitz run. Counts toward the same shared free-tier try limit as
+ * practice sessions and exam simulations, checked here for a clear result and
+ * enforced again by the DB trigger.
+ */
+export async function startBlitzRun(examId: string): Promise<StartBlitzResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const pro = await isPro(supabase, user.id);
+  if (!pro) {
+    const used = await triesUsed(supabase, user.id, examId);
+    if (used >= FREE_TRY_LIMIT) return { ok: false, limitReached: true };
+  }
+
+  const { data, error } = await supabase
+    .from("blitz_runs")
+    .insert({ user_id: user.id, exam_id: examId })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error) {
+    return { ok: false, limitReached: error.message.includes("free_try_limit_reached") };
+  }
+  if (!data) return { ok: false };
+
+  if (pro) return { ok: true, runId: data.id };
+  const used = await triesUsed(supabase, user.id, examId);
+  return { ok: true, runId: data.id, triesLeft: Math.max(0, FREE_TRY_LIMIT - used) };
+}
+
+/** Closes out a Blitz run with the depth it reached. */
+export async function finishBlitzRun(
+  runId: string,
+  depth: number,
+  correctCount: number,
+): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("blitz_runs")
+    .update({
+      finished_at: new Date().toISOString(),
+      depth,
+      correct_count: correctCount,
+    })
+    .eq("id", runId);
 }
 
 /** Logs one answer within an exam-simulation run (separate from practice log). */
