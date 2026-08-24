@@ -10,10 +10,14 @@ const PRODUCT_NAME = "paukr";
 // static client component with no DB access, so update this by hand whenever
 // a new batch of questions gets approved via /review, rather than showing a
 // stale or made-up number.
-const TOTAL_QUESTIONS = 100;
+const TOTAL_QUESTIONS = 300;
 // Rounded down to the nearest 10 with a "+", so it reads honestly even as
 // the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
-const QUESTION_COUNT_LABEL = `${Math.floor(TOTAL_QUESTIONS / 10) * 10}+`;
+// An exact multiple of 10 is shown as is, since "300+" would overstate 300.
+const QUESTION_COUNT_LABEL =
+  TOTAL_QUESTIONS % 10 === 0
+    ? `${TOTAL_QUESTIONS}`
+    : `${Math.floor(TOTAL_QUESTIONS / 10) * 10}+`;
 
 function CheckItem({ text, filled }: { text: string; filled: boolean }) {
   return (
