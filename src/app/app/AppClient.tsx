@@ -1165,6 +1165,7 @@ export default function AppClient({
             <div style={{ marginTop: "18px" }}>
               <button
                 onClick={() => setScreen("detail")}
+                className="pk-auth-link"
                 style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14.5px", padding: "8px", borderRadius: "10px", background: "transparent", color: "var(--muted)", border: "none" }}
               >
                 Zurück zur Prüfung
