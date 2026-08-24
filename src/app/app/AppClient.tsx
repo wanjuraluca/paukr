@@ -1127,14 +1127,38 @@ export default function AppClient({
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,34px)", letterSpacing: "-.03em", margin: "0 0 12px" }}>
               Deine kostenlosen Versuche sind aufgebraucht
             </h1>
-            <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 30px", lineHeight: 1.55 }}>
+            <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 26px", lineHeight: 1.55 }}>
               Du hast die {FREE_TRY_LIMIT} kostenlosen {paywallMode === "sim" ? "Prüfungssimulationen" : "Lernsitzungen"} für {examName} bereits genutzt.
               Mit Pro übst du unbegrenzt weiter, ohne Limit.
             </p>
+
+            <div style={{ textAlign: "left", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 26px", marginBottom: "26px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "18px" }}>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)" }}>9,99 €</span>
+                <span style={{ color: "var(--muted)", fontSize: "14px" }}>/ Monat, jederzeit kündbar</span>
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+                {[
+                  "Kompletter Fragenpool",
+                  "Unbegrenzte Simulationen",
+                  "Adaptives Üben & Schwächen-Analyse",
+                  "Detaillierte Auswertung",
+                  "Werbefrei",
+                ].map((feature) => (
+                  <li key={feature} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14.5px" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M5 13l4 4L19 7" stroke="var(--accent-strong)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <button
               onClick={goToUpgrade}
               className="pk-scale-btn-sm"
-              style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px 28px", borderRadius: "15px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+              style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px 28px", borderRadius: "15px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
             >
               Auf Pro upgraden
             </button>
