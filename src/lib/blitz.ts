@@ -10,9 +10,20 @@ export const BLITZ_BASE_GAIN = 6;
 /** Seconds a wrong answer costs before boons. */
 export const BLITZ_BASE_PENALTY = 8;
 /** A correct answer gives one second less every this many questions. */
-export const BLITZ_DECAY_EVERY = 5;
+export const BLITZ_DECAY_EVERY = 4;
 /** However deep the run goes, a correct answer never gives less than this. */
-export const BLITZ_MIN_GAIN = 2;
+export const BLITZ_MIN_GAIN = 1;
+/**
+ * Ceiling on the clock, in seconds. Without it a strong player banks time
+ * faster than the decay can take it away and the run never ends. The cap also
+ * gives Zeitpolster a real cost: taken at a full clock, most of it is wasted.
+ */
+export const BLITZ_CLOCK_CAP_SECONDS = 90;
+/**
+ * Rückenwind stacks are limited for the same reason: gain has to stay bounded,
+ * otherwise it outgrows the decay and the run runs forever.
+ */
+export const BLITZ_TAILWIND_MAX = 3;
 /** However many Zähigkeit stacks, a wrong answer never costs less than this. */
 export const BLITZ_MIN_PENALTY = 2;
 /** A boon is offered after every this many answered questions. */
@@ -40,7 +51,7 @@ export const BOONS: BoonDef[] = [
   {
     id: "tailwind",
     label: "Rückenwind",
-    desc: "Jede richtige Antwort gibt dir 2 Sekunden mehr. Stapelbar.",
+    desc: "Jede richtige Antwort gibt dir 2 Sekunden mehr. Bis zu dreimal.",
   },
   {
     id: "shield",
@@ -60,7 +71,7 @@ export const BOONS: BoonDef[] = [
   {
     id: "cushion",
     label: "Zeitpolster",
-    desc: "Sofort 20 Sekunden auf die Uhr.",
+    desc: "Sofort 20 Sekunden auf die Uhr. Nur einmal pro Lauf.",
   },
   {
     id: "toughness",
@@ -78,12 +89,14 @@ export const BOONS: BoonDef[] = [
 export const CUSHION_SECONDS = 20;
 
 export interface BoonState {
-  /** Permanent, stackable: +2s per correct answer each. */
+  /** Permanent, stackable up to BLITZ_TAILWIND_MAX: +2s per correct answer each. */
   tailwind: number;
   /** Permanent, stackable: -3s penalty each. */
   toughness: number;
   /** Permanent, once: doubles both gain and penalty. */
   risk: boolean;
+  /** Instant, once per run. */
+  cushionUsed: boolean;
   /** Consumable charges. */
   shield: number;
   fifty: number;
@@ -91,7 +104,15 @@ export interface BoonState {
 }
 
 export function emptyBoons(): BoonState {
-  return { tailwind: 0, toughness: 0, risk: false, shield: 0, fifty: 0, skip: 0 };
+  return {
+    tailwind: 0,
+    toughness: 0,
+    risk: false,
+    cushionUsed: false,
+    shield: 0,
+    fifty: 0,
+    skip: 0,
+  };
 }
 
 /**
@@ -99,10 +120,16 @@ export function emptyBoons(): BoonState {
  * so every run ends eventually, no matter how well the player answers.
  */
 export function gainSeconds(depth: number, boons: BoonState): number {
+  const stacks = Math.min(boons.tailwind, BLITZ_TAILWIND_MAX);
   const raw =
-    BLITZ_BASE_GAIN + boons.tailwind * 2 - Math.floor(depth / BLITZ_DECAY_EVERY);
+    BLITZ_BASE_GAIN + stacks * 2 - Math.floor(depth / BLITZ_DECAY_EVERY);
   const gain = Math.max(BLITZ_MIN_GAIN, raw);
   return boons.risk ? gain * 2 : gain;
+}
+
+/** Caps a clock value at the ceiling. Every place that adds time goes through this. */
+export function capClockMs(ms: number): number {
+  return Math.min(ms, BLITZ_CLOCK_CAP_SECONDS * 1000);
 }
 
 /** Seconds a wrong answer costs. A held Schild is handled by the caller. */
@@ -116,7 +143,12 @@ export function penaltySeconds(boons: BoonState): number {
 
 /** Boons that can still do something for this run. */
 export function availableBoons(boons: BoonState): BoonDef[] {
-  return BOONS.filter((b) => !(b.id === "risk" && boons.risk));
+  return BOONS.filter((b) => {
+    if (b.id === "risk") return !boons.risk;
+    if (b.id === "cushion") return !boons.cushionUsed;
+    if (b.id === "tailwind") return boons.tailwind < BLITZ_TAILWIND_MAX;
+    return true;
+  });
 }
 
 /** Draws the offer for one boon screen: distinct ids, still-useful boons only. */
@@ -145,7 +177,7 @@ export function applyBoon(
   let instantSeconds = 0;
   switch (id) {
     case "tailwind":
-      next.tailwind += 1;
+      next.tailwind = Math.min(BLITZ_TAILWIND_MAX, next.tailwind + 1);
       break;
     case "toughness":
       next.toughness += 1;
@@ -163,6 +195,7 @@ export function applyBoon(
       next.skip += 2;
       break;
     case "cushion":
+      next.cushionUsed = true;
       instantSeconds = CUSHION_SECONDS;
       break;
   }

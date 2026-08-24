@@ -25,6 +25,7 @@ import {
   pickQuestion,
   fiftyFiftyHidden,
   formatBlitzClock,
+  capClockMs,
   type BoonDef,
   type BoonId,
   type BoonState,
@@ -363,8 +364,11 @@ export default function AppClient({
   // Moves the deadline by `ms` and returns the fresh remainder, so the caller
   // can react to a wrong answer that just killed the run.
   const blitzShiftDeadline = (ms: number): number => {
-    blitzDeadlineRef.current += ms;
-    const left = blitzDeadlineRef.current - Date.now();
+    const now = Date.now();
+    // Gains are capped so time cannot be banked without limit, which is what
+    // keeps a strong run from becoming endless. Losses are never capped.
+    blitzDeadlineRef.current = now + capClockMs(blitzDeadlineRef.current + ms - now);
+    const left = blitzDeadlineRef.current - now;
     setBlitzMsLeft(Math.max(0, left));
     return left;
   };
@@ -439,7 +443,7 @@ export default function AppClient({
     if (blitzEndedRef.current) return;
     const { boons: next, instantSeconds } = applyBoon(boons, id);
     setBoons(next);
-    const resumeMs = blitzRemainingRef.current + instantSeconds * 1000;
+    const resumeMs = capClockMs(blitzRemainingRef.current + instantSeconds * 1000);
     blitzDeadlineRef.current = Date.now() + resumeMs;
     setBlitzMsLeft(resumeMs);
     setBoonOffer([]);
