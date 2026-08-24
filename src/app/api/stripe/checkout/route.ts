@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -22,6 +22,8 @@ export async function POST() {
     .select("stripe_customer_id")
     .eq("id", user.id)
     .maybeSingle<{ stripe_customer_id: string | null }>();
+
+  const stripe = getStripe();
 
   let customerId = profile?.stripe_customer_id ?? null;
   if (!customerId) {
