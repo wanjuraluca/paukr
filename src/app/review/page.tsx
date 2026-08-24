@@ -18,6 +18,7 @@ interface ReviewQuestion {
   difficulty: number;
   reviewed: boolean;
   source_key: string | null;
+  question_type: "single" | "multiple";
   topics: { name: string; sort_order: number } | null;
   answer_options: { option_text: string; is_correct: boolean; sort_order: number }[];
 }
@@ -44,7 +45,7 @@ export default async function ReviewPage() {
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, question_text, explanation, difficulty, reviewed, source_key, topics(name, sort_order), answer_options(option_text, is_correct, sort_order)",
+      "id, question_text, explanation, difficulty, reviewed, source_key, question_type, topics(name, sort_order), answer_options(option_text, is_correct, sort_order)",
     )
     .returns<ReviewQuestion[]>();
 
@@ -148,6 +149,12 @@ export default async function ReviewPage() {
                     {q.source_key}
                   </span>
                   <span style={{ fontSize: "12px", color: "var(--muted)" }}>· Schwierigkeit {q.difficulty}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 700, padding: "4px 10px", borderRadius: "100px", background: "var(--bg-alt)", color: "var(--text)" }}>
+                    {q.question_type === "multiple" ? "Mehrfachauswahl" : "Einfachauswahl"}
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: q.question_type === "multiple" ? "var(--accent-strong)" : "var(--muted)", background: q.question_type === "multiple" ? "color-mix(in oklch, var(--accent) 13%, var(--bg))" : "var(--bg-alt)", padding: "4px 10px", borderRadius: "100px" }}>
+                    {q.question_type === "multiple" ? "Mehrfachauswahl" : "Einzelauswahl"}
+                  </span>
                   <span
                     style={{
                       marginLeft: "auto",
@@ -185,7 +192,7 @@ export default async function ReviewPage() {
                       }}
                     >
                       <span style={{ ...heading, width: "22px", height: "22px", borderRadius: "7px", border: "1.5px solid var(--border)", display: "grid", placeItems: "center", fontSize: "12px", fontWeight: 600, flexShrink: 0, background: "var(--bg)" }}>
-                        {["A", "B", "C", "D"][i]}
+                        {["A", "B", "C", "D", "E"][i]}
                       </span>
                       <span style={{ flex: 1 }}>{o.option_text}</span>
                       {o.is_correct && (

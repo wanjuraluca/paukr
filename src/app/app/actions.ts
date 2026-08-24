@@ -22,6 +22,7 @@ export async function recordAttempt(
   questionId: string,
   correct: boolean,
   responseMs: number,
+  selectedOptionIds: string[] = [],
 ): Promise<RecordAttemptResult> {
   const supabase = await createClient();
   const {
@@ -29,12 +30,13 @@ export async function recordAttempt(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false };
 
-  // Resolve the question's topic for the progress counters.
+  // Resolve the question's topic (for progress counters) and type (to know
+  // whether to write selected_option_id or the multi-select join rows).
   const { data: q } = await supabase
     .from("questions")
-    .select("topic_id")
+    .select("topic_id, question_type")
     .eq("id", questionId)
-    .single<{ topic_id: string }>();
+    .single<{ topic_id: string; question_type: "single" | "multiple" }>();
   if (!q) return { ok: false };
 
   // --- Spaced repetition (SM-2) ---------------------------------------
@@ -77,11 +79,26 @@ export async function recordAttempt(
   );
 
   // --- Raw attempt log ------------------------------------------------
-  await supabase.from("question_attempts").insert({
-    user_id: user.id,
-    question_id: questionId,
-    is_correct: correct,
-  });
+  const { data: attempt } = await supabase
+    .from("question_attempts")
+    .insert({
+      user_id: user.id,
+      question_id: questionId,
+      selected_option_id:
+        q.question_type === "single" ? (selectedOptionIds[0] ?? null) : null,
+      is_correct: correct,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (q.question_type === "multiple" && attempt && selectedOptionIds.length > 0) {
+    await supabase.from("question_attempt_selections").insert(
+      selectedOptionIds.map((optionId) => ({
+        attempt_id: attempt.id,
+        option_id: optionId,
+      })),
+    );
+  }
 
   // --- Per-topic progress counters ------------------------------------
   const { data: prog } = await supabase
@@ -168,14 +185,28 @@ export async function recordExamAnswer(
   questionId: string,
   selectedOptionId: string | null,
   correct: boolean,
+  selectedOptionIds: string[] = [],
 ): Promise<void> {
   const supabase = await createClient();
-  await supabase.from("exam_attempt_answers").insert({
-    exam_attempt_id: attemptId,
-    question_id: questionId,
-    selected_option_id: selectedOptionId,
-    is_correct: correct,
-  });
+  const { data: answer } = await supabase
+    .from("exam_attempt_answers")
+    .insert({
+      exam_attempt_id: attemptId,
+      question_id: questionId,
+      selected_option_id: selectedOptionId,
+      is_correct: correct,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (answer && selectedOptionIds.length > 0) {
+    await supabase.from("exam_attempt_answer_selections").insert(
+      selectedOptionIds.map((optionId) => ({
+        answer_id: answer.id,
+        option_id: optionId,
+      })),
+    );
+  }
 }
 
 /** Closes out an exam-simulation run with its final score. */

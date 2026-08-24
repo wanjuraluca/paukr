@@ -21,6 +21,7 @@ interface QuestionRow {
   id: string;
   question_text: string;
   explanation: string | null;
+  question_type: "single" | "multiple";
   topics: { name: string; exam_id: string };
   answer_options: { id: string; option_text: string; is_correct: boolean }[];
 }
@@ -51,7 +52,7 @@ export default async function AppPage() {
     const { data: rows } = await supabase
       .from("questions")
       .select(
-        "id, question_text, explanation, topics!inner(name, exam_id), answer_options(id, option_text, is_correct)",
+        "id, question_text, explanation, question_type, topics!inner(name, exam_id), answer_options(id, option_text, is_correct)",
       )
       .eq("topics.exam_id", exam.id)
       .returns<QuestionRow[]>();
@@ -74,6 +75,7 @@ export default async function AppPage() {
         topic: r.topics.name,
         q: r.question_text,
         expl: r.explanation,
+        questionType: r.question_type,
         // Shuffle options so the correct answer's position carries no signal.
         options: shuffle(
           (r.answer_options ?? []).map((o) => ({
