@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { recordAttempt, startExamAttempt, recordExamAnswer, finishExamAttempt } from "./actions";
+import {
+  recordAttempt,
+  startExamAttempt,
+  recordExamAnswer,
+  finishExamAttempt,
+  startPracticeSession,
+} from "./actions";
+import { FREE_TRY_LIMIT } from "@/lib/limits";
 import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
 
 const PRODUCT_NAME = "paukr";
@@ -19,7 +26,7 @@ const SIM_UNLOCK_PCT = 80;
 // Passing the simulation this many times in a row marks the user as ready.
 const READINESS_STREAK = 5;
 
-type Screen = "dashboard" | "detail" | "practice" | "result";
+type Screen = "dashboard" | "detail" | "practice" | "result" | "paywall";
 // "practice" = due reviews + new questions; "wrong" = only questions the user
 // last got wrong (the "Falsche Fragen üben" mode); "sim" = the timed,
 // graded exam simulation (all questions, once, no per-question feedback).
@@ -56,6 +63,10 @@ interface Props {
   currentStreak?: number;
   simPassStreak?: number;
   isAdmin?: boolean;
+  isPro?: boolean;
+  // Remaining free-tier session starts for this exam (only meaningful when
+  // !isPro), computed server-side from practice_sessions + exam_attempts.
+  triesLeft?: number;
 }
 
 /**
@@ -124,6 +135,8 @@ export default function AppClient({
   currentStreak = 0,
   simPassStreak = 0,
   isAdmin = false,
+  isPro = false,
+  triesLeft = FREE_TRY_LIMIT,
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -154,6 +167,11 @@ export default function AppClient({
   // Consecutive passed simulations, seeded from the server and updated live as
   // the user finishes runs this session (server recomputes on next load).
   const [passStreak, setPassStreak] = useState(simPassStreak);
+  // Local copy of the remaining free tries so the indicator updates instantly
+  // after a session start, without waiting for a full page reload.
+  const [triesLeftState, setTriesLeftState] = useState(triesLeft);
+  // Which mode was blocked by the paywall, only used to render its copy.
+  const [paywallMode, setPaywallMode] = useState<PracticeMode>("practice");
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -214,27 +232,50 @@ export default function AppClient({
     setResults([]);
     shownAtRef.current = performance.now();
   };
-  const startPractice = () => {
-    setMode("practice");
-    setSession(buildSession(questions, "practice"));
+  // Shared entry point for "practice" and "wrong" mode: both count toward the
+  // same free-tier try limit as one shared pool of 3 per exam. Checks the
+  // limit client-side first (fast path for the common case), then confirms
+  // server-side, since the client state could be stale or bypassed.
+  const startPracticeMode = async (targetMode: "practice" | "wrong") => {
+    if (!isPro && triesLeftState <= 0) {
+      setPaywallMode(targetMode);
+      setScreen("paywall");
+      return;
+    }
+    const res = await startPracticeSession(examId);
+    if (!res.ok) {
+      setPaywallMode(targetMode);
+      setScreen("paywall");
+      return;
+    }
+    if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
+    setMode(targetMode);
+    setSession(buildSession(questions, targetMode));
     resetQuiz();
     setScreen("practice");
   };
-  const startWrongPractice = () => {
-    setMode("wrong");
-    setSession(buildSession(questions, "wrong"));
-    resetQuiz();
-    setScreen("practice");
-  };
+  const startPractice = () => void startPracticeMode("practice");
+  const startWrongPractice = () => void startPracticeMode("wrong");
   const startSimulation = async () => {
     if (!simUnlocked) return; // Gated until the pool is mastered enough.
+    if (!isPro && triesLeftState <= 0) {
+      setPaywallMode("sim");
+      setScreen("paywall");
+      return;
+    }
+    const res = await startExamAttempt(examId, SIM_TIME_LIMIT_SECONDS);
+    if (!res.ok) {
+      setPaywallMode("sim");
+      setScreen("paywall");
+      return;
+    }
+    if (!isPro) setTriesLeftState((t) => Math.max(0, t - 1));
     setMode("sim");
     setSession(buildSession(questions, "sim"));
     resetQuiz();
     setSecondsLeft(SIM_TIME_LIMIT_SECONDS);
     setGradeResult(null);
     finishingRef.current = false;
-    const res = await startExamAttempt(examId, SIM_TIME_LIMIT_SECONDS);
     setExamAttemptId(res.attemptId ?? null);
     setScreen("practice");
   };
@@ -256,6 +297,7 @@ export default function AppClient({
   const exitPractice = () => setScreen("detail");
   const backToOverview = () => setScreen("dashboard");
   const goBack = () => setScreen((s) => (s === "detail" ? "dashboard" : "detail"));
+  const goToUpgrade = () => router.push("/upgrade");
 
   const animateXp = (amount: number) => {
     const from = xp;
@@ -340,7 +382,7 @@ export default function AppClient({
   };
 
   const showHeader = screen !== "practice";
-  const showBack = screen === "detail" || screen === "result";
+  const showBack = screen === "detail" || screen === "result" || screen === "paywall";
   const practicePct =
     total > 0
       ? Math.round(((qIndex + (answered ? 1 : 0)) / total) * 100) + "%"
@@ -666,6 +708,13 @@ export default function AppClient({
                 {wrongCount} {wrongCount === 1 ? "Frage" : "Fragen"}
               </span>
             </button>
+          )}
+          {!isPro && (
+            <p style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .09s both", fontSize: "14px", fontWeight: 600, color: triesLeftState > 0 ? "var(--muted)" : "var(--err-strong)", margin: "0 0 16px" }}>
+              {triesLeftState > 0
+                ? `Noch ${triesLeftState} von ${FREE_TRY_LIMIT} kostenlosen Versuchen für diese Prüfung`
+                : `Keine kostenlosen Versuche mehr für diese Prüfung`}
+            </p>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
             <button
@@ -1061,6 +1110,42 @@ export default function AppClient({
             >
               Zurück zur Übersicht
             </button>
+          </div>
+        </main>
+      )}
+
+      {/* ===== SCREEN 5: PAYWALL ===== */}
+      {screen === "paywall" && (
+        <main style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+            <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--accent-strong)" strokeWidth="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--accent-strong)" strokeWidth="2" />
+              </svg>
+            </span>
+            <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,34px)", letterSpacing: "-.03em", margin: "0 0 12px" }}>
+              Deine kostenlosen Versuche sind aufgebraucht
+            </h1>
+            <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 30px", lineHeight: 1.55 }}>
+              Du hast die {FREE_TRY_LIMIT} kostenlosen {paywallMode === "sim" ? "Prüfungssimulationen" : "Lernsitzungen"} für {examName} bereits genutzt.
+              Mit Pro übst du unbegrenzt weiter, ohne Limit.
+            </p>
+            <button
+              onClick={goToUpgrade}
+              className="pk-scale-btn-sm"
+              style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px 28px", borderRadius: "15px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 32%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+            >
+              Auf Pro upgraden
+            </button>
+            <div style={{ marginTop: "18px" }}>
+              <button
+                onClick={() => setScreen("detail")}
+                style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14.5px", padding: "8px", borderRadius: "10px", background: "transparent", color: "var(--muted)", border: "none" }}
+              >
+                Zurück zur Prüfung
+              </button>
+            </div>
           </div>
         </main>
       )}
