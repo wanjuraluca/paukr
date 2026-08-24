@@ -928,6 +928,16 @@ export default function AppClient({
                       <span style={{ ...heading, fontWeight: 700, fontSize: "16px", color: "var(--accent-strong)" }}>{xpDisplay.toLocaleString("de-DE")} XP</span>
                     </div>
                   )}
+                  {!answered && q.questionType === "multiple" && (
+                    <button
+                      onClick={submitMulti}
+                      disabled={selectedMulti.length === 0}
+                      className="pk-scale-btn"
+                      style={{ marginLeft: "auto", border: "none", cursor: selectedMulti.length === 0 ? "not-allowed" : "pointer", opacity: selectedMulti.length === 0 ? 0.5 : 1, fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "14px 26px", borderRadius: "14px", background: "var(--accent)", color: "var(--on-accent)", display: "flex", alignItems: "center", gap: "9px", boxShadow: "0 8px 24px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3)" }}
+                    >
+                      Prüfen
+                    </button>
+                  )}
                   {answered && (
                     <button
                       onClick={next}
