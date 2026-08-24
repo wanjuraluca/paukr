@@ -51,6 +51,27 @@ body {
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 14px 44px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 30px 70px rgba(0, 0, 0, 0.5);
 }
+/* Server-rendered shells (the loading skeletons) cannot know the theme, since
+   it is picked per client component from prefers-color-scheme. Anything without
+   an explicit data-theme therefore follows the OS setting, which is the same
+   default those components land on. */
+@media (prefers-color-scheme: dark) {
+  .eh:not([data-theme]) {
+    --bg: #0f1118;
+    --bg-alt: #14161f;
+    --surface: #171a24;
+    --text: #eef0f7;
+    --muted: #9a9fb0;
+    --border: #262a37;
+    --accent: oklch(0.68 0.17 264);
+    --accent-strong: oklch(0.75 0.15 264);
+    --on-accent: #0c0d13;
+    --err: oklch(0.72 0.11 46);
+    --err-strong: oklch(0.8 0.1 50);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 14px 44px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 30px 70px rgba(0, 0, 0, 0.5);
+  }
+}
 .eh[data-accent="emerald"] {
   --accent: oklch(0.63 0.14 162);
   --accent-strong: oklch(0.56 0.14 162);
@@ -152,6 +173,30 @@ body {
     stroke-dashoffset: 339;
   }
 }
+@keyframes pk-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ===== Loading skeletons ===== */
+.pk-skel {
+  background-image: linear-gradient(
+    90deg,
+    var(--bg-alt) 25%,
+    color-mix(in oklch, var(--border) 70%, var(--bg-alt)) 37%,
+    var(--bg-alt) 63%
+  );
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  animation: pk-shimmer 1.5s ease-in-out infinite;
+  border-radius: 10px;
+}
+/* A skeleton stands in for text, so nothing inside it should be readable or
+   announced while it is on screen. */
+.pk-skel:empty {
+  display: block;
+}
 
 /* ===== Hover / active interactions (replace Claude-Design style-hover) ===== */
 .pk-navlink:hover {
@@ -159,27 +204,27 @@ body {
 }
 .pk-btn-accent:hover {
   transform: scale(1.03);
-  box-shadow: 0 10px 28px color-mix(in oklch, var(--accent) 45%, transparent);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--accent) 45%, transparent) !important;
 }
 .pk-btn-accent:active {
   transform: scale(0.96);
 }
 .pk-btn-accent-lg:hover {
   transform: scale(1.03);
-  box-shadow: 0 14px 36px color-mix(in oklch, var(--accent) 46%, transparent);
+  box-shadow: 0 14px 36px color-mix(in oklch, var(--accent) 46%, transparent) !important;
 }
 .pk-btn-accent-lg:active {
   transform: scale(0.96);
 }
 .pk-btn-ghost:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateY(-2px);
 }
 .pk-btn-ghost:active {
   transform: scale(0.96);
 }
 .pk-theme-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateY(-1px);
 }
 .pk-theme-btn:active {
@@ -187,11 +232,11 @@ body {
 }
 .pk-feature-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow);
-  border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
+  box-shadow: var(--shadow) !important;
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--border)) !important;
 }
 .pk-price-btn-ghost:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateY(-2px);
 }
 .pk-price-btn-ghost:active {
@@ -199,14 +244,14 @@ body {
 }
 .pk-price-btn-accent:hover {
   transform: scale(1.02);
-  box-shadow: 0 12px 30px color-mix(in oklch, var(--accent) 46%, transparent);
+  box-shadow: 0 12px 30px color-mix(in oklch, var(--accent) 46%, transparent) !important;
 }
 .pk-price-btn-accent:active {
   transform: scale(0.97);
 }
 .pk-cta-btn:hover {
   transform: scale(1.03);
-  box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 50%, transparent);
+  box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 50%, transparent) !important;
 }
 .pk-cta-btn:active {
   transform: scale(0.96);
@@ -221,7 +266,7 @@ body {
 
 /* ===== App-screen interactions ===== */
 .pk-app-back:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateX(-2px);
 }
 .pk-app-back:active {
@@ -235,37 +280,37 @@ body {
 }
 .pk-exam-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: color-mix(in oklch, var(--accent) 45%, var(--border));
+  box-shadow: var(--shadow-lg) !important;
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--border)) !important;
 }
 .pk-exam-card:active {
   transform: scale(0.99);
 }
 .pk-mode-primary:hover {
   transform: scale(1.02);
-  box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 46%, transparent);
+  box-shadow: 0 16px 40px color-mix(in oklch, var(--accent) 46%, transparent) !important;
 }
 .pk-mode-primary:active {
   transform: scale(0.98);
 }
 .pk-mode-secondary:hover {
   transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: var(--shadow);
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow) !important;
 }
 .pk-mode-secondary:active {
   transform: scale(0.98);
 }
 .pk-topic-card:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
-  box-shadow: var(--shadow);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--border)) !important;
+  box-shadow: var(--shadow) !important;
 }
 .pk-topic-card:active {
   transform: scale(0.98);
 }
 .pk-practice-exit:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: rotate(90deg);
 }
 .pk-practice-exit:active {
@@ -284,13 +329,13 @@ body {
   transform: scale(0.97);
 }
 .pk-menu-item:hover {
-  background: var(--bg-alt);
+  background: var(--bg-alt) !important;
 }
 .pk-menu-item:active {
   transform: scale(0.98);
 }
 .pk-option-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateY(-1px);
 }
 .pk-option-btn:active {
@@ -300,17 +345,104 @@ body {
 /* ===== Review-page interactions ===== */
 .pk-review-btn-accent:hover {
   transform: scale(1.02);
-  box-shadow: 0 8px 20px color-mix(in oklch, var(--accent) 40%, transparent);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--accent) 40%, transparent) !important;
 }
 .pk-review-btn-accent:active {
   transform: scale(0.97);
 }
 .pk-review-btn-ghost:hover {
-  border-color: var(--accent);
+  border-color: var(--accent) !important;
   transform: translateY(-1px);
 }
 .pk-review-btn-ghost:active {
   transform: scale(0.97);
+}
+
+/* ===== Auth / legal / shell interactions =====
+   These carry their own transition so the markup keeps its plain style objects. */
+.pk-auth-submit {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3), box-shadow 0.25s;
+}
+.pk-auth-ghost {
+  transition: transform 0.18s, border-color 0.2s;
+}
+.pk-auth-tab {
+  transition: color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.pk-auth-link {
+  transition: color 0.18s;
+}
+.pk-auth-submit:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px color-mix(in oklch, var(--accent) 42%, transparent) !important;
+}
+.pk-auth-submit:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pk-auth-ghost:hover:not(:disabled) {
+  border-color: var(--accent) !important;
+  transform: translateY(-1px);
+}
+.pk-auth-ghost:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pk-auth-tab:hover {
+  color: var(--text) !important;
+}
+.pk-auth-link:hover {
+  color: var(--text) !important;
+  text-decoration: underline;
+}
+/* ===== Keyboard focus =====
+   Buttons and links get a ring, but only for keyboard and assistive tech,
+   since :focus-visible stays off plain mouse clicks. The outline follows each
+   element's own border-radius, so no radius is set here. */
+.eh :is(button, a, select, [role="button"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Text fields always show their focus, also on click, because a typing cursor
+   alone is easy to lose. They get the accent border instead of an outline so
+   the two never stack into a double ring. */
+.eh :is(input, textarea) {
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+/* The fields carry border and outline in their inline style objects, which
+   outrank a plain stylesheet rule, so the focus border is forced here. */
+.eh :is(input, textarea):focus,
+.eh :is(input, textarea):focus-visible {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
+}
+
+/* ===== Disabled =====
+   A disabled button must not react to hover, otherwise it still feels
+   clickable while doing nothing. */
+.eh button:disabled {
+  cursor: not-allowed;
+}
+.eh button:disabled:hover,
+.eh button:disabled:active {
+  transform: none !important;
+}
+
+/* ===== Reduced motion =====
+   Honour the OS setting: keep every end state, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .eh *,
+  .eh *::before,
+  .eh *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* Without its sweep the gradient would sit at a random offset, so the
+     placeholder falls back to a flat block. */
+  .pk-skel {
+    background-image: none;
+    background-color: var(--bg-alt);
+  }
 }
 
 /* ===== Mobile responsive fixes ===== */

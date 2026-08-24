@@ -144,6 +144,7 @@ export default function AuthClient() {
                 </p>
                 <button
                   onClick={() => { setForgotMode(false); setResetSent(false); setError(""); }}
+                  className="pk-auth-ghost"
                   style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
                 >
                   Zurück zur Anmeldung
@@ -168,6 +169,7 @@ export default function AuthClient() {
                   <button
                     type="submit"
                     disabled={busy}
+                    className="pk-auth-submit"
                     style={{ width: "100%", cursor: busy ? "default" : "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", opacity: busy ? 0.7 : 1 }}
                   >
                     {busy ? "Moment…" : "Link schicken"}
@@ -175,6 +177,7 @@ export default function AuthClient() {
                   <button
                     type="button"
                     onClick={() => { setForgotMode(false); setError(""); }}
+                    className="pk-auth-link"
                     style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "10px", borderRadius: "13px", background: "transparent", color: "var(--muted)", border: "none" }}
                   >
                     Zurück zur Anmeldung
@@ -190,6 +193,7 @@ export default function AuthClient() {
               </p>
               <button
                 onClick={() => { setSignupDone(false); setIsLogin(true); setError(""); }}
+                className="pk-auth-ghost"
                 style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
               >
                 Zurück zur Anmeldung
@@ -200,12 +204,14 @@ export default function AuthClient() {
               <div style={{ display: "flex", borderRadius: "13px", border: "1px solid var(--border)", background: "var(--bg)", padding: "4px", marginBottom: "24px" }}>
                 <button
                   onClick={() => { setIsLogin(true); setError(""); }}
+                  className="pk-auth-tab"
                   style={{ flex: 1, cursor: "pointer", borderRadius: "10px", padding: "9px", fontSize: "14px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif", border: "none", background: isLogin ? "var(--surface)" : "transparent", color: isLogin ? "var(--text)" : "var(--muted)", boxShadow: isLogin ? "var(--shadow)" : "none" }}
                 >
                   Anmelden
                 </button>
                 <button
                   onClick={() => { setIsLogin(false); setError(""); }}
+                  className="pk-auth-tab"
                   style={{ flex: 1, cursor: "pointer", borderRadius: "10px", padding: "9px", fontSize: "14px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif", border: "none", background: !isLogin ? "var(--surface)" : "transparent", color: !isLogin ? "var(--text)" : "var(--muted)", boxShadow: !isLogin ? "var(--shadow)" : "none" }}
                 >
                   Konto erstellen
@@ -219,6 +225,7 @@ export default function AuthClient() {
 
               <button
                 onClick={handleGoogle}
+                className="pk-auth-ghost"
                 style={{ width: "100%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px", borderRadius: "13px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)", marginBottom: "18px" }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24">
@@ -254,6 +261,7 @@ export default function AuthClient() {
                       <button
                         type="button"
                         onClick={() => { setForgotMode(true); setError(""); }}
+                        className="pk-auth-link"
                         style={{ cursor: "pointer", background: "none", border: "none", padding: 0, color: "var(--accent-strong)", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif" }}
                       >
                         Passwort vergessen?
@@ -262,7 +270,7 @@ export default function AuthClient() {
                   </div>
                   <div style={{ position: "relative" }}>
                     <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: "60px" }} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
+                    <button type="button" className="pk-auth-link" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
                       {showPassword ? "verbergen" : "zeigen"}
                     </button>
                   </div>
@@ -277,6 +285,7 @@ export default function AuthClient() {
                 <button
                   type="submit"
                   disabled={busy}
+                  className="pk-auth-submit"
                   style={{ width: "100%", cursor: busy ? "default" : "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", opacity: busy ? 0.7 : 1 }}
                 >
                   {busy ? "Moment…" : isLogin ? "Anmelden" : "Konto erstellen"}

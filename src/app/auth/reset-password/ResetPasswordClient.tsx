@@ -94,6 +94,7 @@ export default function ResetPasswordClient() {
               </p>
               <button
                 onClick={() => router.push("/app")}
+                className="pk-auth-submit"
                 style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)" }}
               >
                 Weiter zu paukr
@@ -110,7 +111,7 @@ export default function ResetPasswordClient() {
                   <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)" }}>Neues Passwort</label>
                   <div style={{ position: "relative" }}>
                     <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: "60px" }} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
+                    <button type="button" className="pk-auth-link" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
                       {showPassword ? "verbergen" : "zeigen"}
                     </button>
                   </div>
@@ -129,6 +130,7 @@ export default function ResetPasswordClient() {
                 <button
                   type="submit"
                   disabled={busy}
+                  className="pk-auth-submit"
                   style={{ width: "100%", cursor: busy ? "default" : "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", opacity: busy ? 0.7 : 1 }}
                 >
                   {busy ? "Moment…" : "Passwort speichern"}
