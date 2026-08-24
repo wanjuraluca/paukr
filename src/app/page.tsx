@@ -56,6 +56,7 @@ export default function Home() {
   const isDark = theme === "dark";
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const goToApp = () => router.push("/app");
+  const goToUpgrade = () => router.push("/upgrade");
 
   const heading: CSSProperties = {
     fontFamily: "var(--font-space), sans-serif",
@@ -642,7 +643,7 @@ export default function Home() {
               <div style={{ height: "1px", background: "var(--border)", margin: "26px 0" }} />
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "14px", fontSize: "15px" }}>
                 <CheckItem text="Basis-Fragenpool" filled={false} />
-                <CheckItem text="3 Simulationen pro Monat" filled={false} />
+                <CheckItem text="3 kostenlose Versuche pro Prüfung" filled={false} />
                 <CheckItem text="XP & Fortschritts-Tracking" filled={false} />
               </ul>
             </div>
@@ -652,11 +653,11 @@ export default function Home() {
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Pro</h3>
               <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Für alle, die wirklich bestehen wollen.</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "26px" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>9 €</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>9,99 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat</span>
               </div>
               <button
-                onClick={goToApp}
+                onClick={goToUpgrade}
                 className="pk-price-btn-accent"
                 style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
               >
