@@ -35,6 +35,7 @@ export interface QuizQuestion {
   topic: string;
   q: string;
   expl: string | null;
+  questionType: "single" | "multiple";
   options: QuizOption[];
   // Spaced-repetition metadata for this user (null / true when never seen).
   dueAt: string | null;
@@ -130,6 +131,10 @@ export default function AppClient({
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  // Multi-select (checkbox) picks for question_type = "multiple", by option
+  // index. Confirmed via an explicit check button, unlike single-choice which
+  // submits immediately on click.
+  const [selectedMulti, setSelectedMulti] = useState<number[]>([]);
   const [answered, setAnswered] = useState(false);
   const [xp, setXp] = useState(xpTotal);
   const [xpDisplay, setXpDisplay] = useState(xpTotal);
@@ -204,6 +209,7 @@ export default function AppClient({
   const resetQuiz = () => {
     setQIndex(0);
     setSelected(null);
+    setSelectedMulti([]);
     setAnswered(false);
     setResults([]);
     shownAtRef.current = performance.now();
@@ -282,9 +288,41 @@ export default function AppClient({
     // Persist the attempt + advance spaced repetition (fire-and-forget; the
     // server is the source of truth on the next load).
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(q.id, opt.isCorrect, responseMs);
+    void recordAttempt(q.id, opt.isCorrect, responseMs, [opt.id]);
     if (mode === "sim" && examAttemptId) {
       void recordExamAnswer(examAttemptId, q.id, opt.id, opt.isCorrect);
+    }
+  };
+
+  // Toggles one option's checked state for a multiple-choice question. No
+  // submission happens until the user confirms via the check button.
+  const toggleMulti = (i: number) => {
+    if (answered || !q) return;
+    setSelectedMulti((cur) =>
+      cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i],
+    );
+  };
+
+  // Confirms the current checkbox picks for a multiple-choice question.
+  // Correct only if the picked set exactly matches the correct set.
+  const submitMulti = () => {
+    if (answered || !q) return;
+    const pickedSet = new Set(selectedMulti);
+    const correctSet = new Set(
+      q.options.map((o, i) => (o.isCorrect ? i : -1)).filter((i) => i >= 0),
+    );
+    const isCorrect =
+      pickedSet.size === correctSet.size &&
+      [...pickedSet].every((i) => correctSet.has(i));
+    setAnswered(true);
+    setResults((r) => [...r, { topic: q.topic, correct: isCorrect }]);
+    if (mode !== "sim" && isCorrect) animateXp(50);
+
+    const optionIds = selectedMulti.map((i) => q.options[i].id);
+    const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
+    void recordAttempt(q.id, isCorrect, responseMs, optionIds);
+    if (mode === "sim" && examAttemptId) {
+      void recordExamAnswer(examAttemptId, q.id, null, isCorrect, optionIds);
     }
   };
 
@@ -296,6 +334,7 @@ export default function AppClient({
     }
     setQIndex((i) => i + 1);
     setSelected(null);
+    setSelectedMulti([]);
     setAnswered(false);
     shownAtRef.current = performance.now();
   };
@@ -308,8 +347,11 @@ export default function AppClient({
       : "0%";
   const qCounter = qIndex + 1 + " / " + total;
   const nextLabel = qIndex + 1 >= total ? "Ergebnis ansehen" : "Weiter";
+  const lastResultCorrect = results.length > 0 ? results[results.length - 1].correct : false;
   const verdictLabel =
-    selected !== null && q?.options[selected]?.isCorrect ? "Richtig!" : "Nicht ganz.";
+    answered && (q?.questionType === "multiple" ? lastResultCorrect : selected !== null && q?.options[selected]?.isCorrect)
+      ? "Richtig!"
+      : "Nicht ganz.";
 
   // Result computation from actual answers. In sim mode the graded score
   // (blank answers count against you) replaces the plain practice score.
@@ -469,6 +511,13 @@ export default function AppClient({
                       {userName}
                     </div>
                   )}
+                  <button
+                    onClick={() => router.push("/upgrade")}
+                    className="pk-menu-item"
+                    style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--accent-strong)", border: "none", transition: "background .18s, transform .12s" }}
+                  >
+                    Auf Pro upgraden
+                  </button>
                   {isAdmin && (
                     <button
                       onClick={() => router.push("/review")}
@@ -761,7 +810,8 @@ export default function AppClient({
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   {q.options.map((o, i) => {
                     const isCorrect = o.isCorrect;
-                    const chosen = i === selected;
+                    const isMulti = q.questionType === "multiple";
+                    const chosen = isMulti ? selectedMulti.includes(i) : i === selected;
                     const reveal = answered && mode !== "sim";
                     let bg = "var(--surface)";
                     let border = "var(--border)";
@@ -782,11 +832,15 @@ export default function AppClient({
                       // Sim mode: show the pick was registered, no correctness.
                       border = "var(--accent)";
                       bg = "color-mix(in oklch, var(--accent) 8%, var(--bg))";
+                    } else if (chosen) {
+                      // Multi-choice, not yet submitted: show it's checked.
+                      border = "var(--accent)";
+                      bg = "color-mix(in oklch, var(--accent) 8%, var(--bg))";
                     }
                     return (
                       <button
                         key={i}
-                        onClick={() => select(i)}
+                        onClick={() => (isMulti ? toggleMulti(i) : select(i))}
                         className="pk-option-btn"
                         style={{
                           display: "flex",
@@ -808,8 +862,30 @@ export default function AppClient({
                           transition: "transform .18s, border-color .2s, background .25s, box-shadow .25s",
                         }}
                       >
-                        <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "8px", border: "1.5px solid var(--border)", display: "grid", placeItems: "center", fontWeight: 600, fontSize: "13px", flexShrink: 0, background: "var(--bg)" }}>
-                          {["A", "B", "C", "D"][i]}
+                        <span
+                          style={{
+                            ...heading,
+                            width: "26px",
+                            height: "26px",
+                            borderRadius: isMulti ? "7px" : "8px",
+                            border: "1.5px solid var(--border)",
+                            display: "grid",
+                            placeItems: "center",
+                            fontWeight: 600,
+                            fontSize: "13px",
+                            flexShrink: 0,
+                            background: isMulti && chosen && !reveal ? "var(--accent)" : "var(--bg)",
+                          }}
+                        >
+                          {isMulti ? (
+                            chosen && !reveal ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12.5l4.5 4.5L19 7" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : null
+                          ) : (
+                            ["A", "B", "C", "D"][i]
+                          )}
                         </span>
                         <span style={{ flex: 1 }}>{o.text}</span>
                         {reveal && isCorrect && (
