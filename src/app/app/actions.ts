@@ -2,8 +2,45 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { reviewCard, freshCard, type SrsState } from "@/lib/srs";
+import { FREE_TRY_LIMIT } from "@/lib/limits";
 
 const XP_PER_CORRECT = 50;
+
+// Mirrored in the DB trigger (enforce_free_try_limit) as the real guarantee,
+// FREE_TRY_LIMIT here is the friendly check that returns a clear result
+// instead of a raw DB error.
+
+async function triesUsed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  examId: string,
+): Promise<number> {
+  const [practice, sim] = await Promise.all([
+    supabase
+      .from("practice_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("exam_id", examId),
+    supabase
+      .from("exam_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("exam_id", examId),
+  ]);
+  return (practice.count ?? 0) + (sim.count ?? 0);
+}
+
+async function isPro(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", userId)
+    .single<{ subscription_tier: string }>();
+  return data?.subscription_tier === "pro";
+}
 
 export interface RecordAttemptResult {
   ok: boolean;
@@ -156,6 +193,7 @@ export async function recordAttempt(
 export interface StartExamResult {
   ok: boolean;
   attemptId?: string;
+  limitReached?: boolean;
 }
 
 /** Starts a new timed exam-simulation run and returns its attempt id. */
@@ -169,14 +207,62 @@ export async function startExamAttempt(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false };
 
+  if (!(await isPro(supabase, user.id))) {
+    const used = await triesUsed(supabase, user.id, examId);
+    if (used >= FREE_TRY_LIMIT) return { ok: false, limitReached: true };
+  }
+
   const { data, error } = await supabase
     .from("exam_attempts")
     .insert({ user_id: user.id, exam_id: examId, time_limit_seconds: timeLimitSeconds })
     .select("id")
     .single<{ id: string }>();
 
-  if (error || !data) return { ok: false };
+  if (error) {
+    // The DB trigger raises free_try_limit_reached if a race let two starts
+    // through the check above at once, treat that the same as a friendly limit.
+    return { ok: false, limitReached: error.message.includes("free_try_limit_reached") };
+  }
+  if (!data) return { ok: false };
   return { ok: true, attemptId: data.id };
+}
+
+export interface StartPracticeResult {
+  ok: boolean;
+  limitReached?: boolean;
+  triesLeft?: number;
+}
+
+/**
+ * Records the start of a practice-mode session (either "practice" or "wrong
+ * questions" mode) so it counts toward the free-tier try limit even if the
+ * user abandons it before answering anything. Returns the remaining tries so
+ * the client can update its indicator without a full page reload.
+ */
+export async function startPracticeSession(examId: string): Promise<StartPracticeResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const pro = await isPro(supabase, user.id);
+  if (!pro) {
+    const used = await triesUsed(supabase, user.id, examId);
+    if (used >= FREE_TRY_LIMIT) return { ok: false, limitReached: true };
+  }
+
+  const { error } = await supabase
+    .from("practice_sessions")
+    .insert({ user_id: user.id, exam_id: examId });
+
+  if (error) {
+    return { ok: false, limitReached: error.message.includes("free_try_limit_reached") };
+  }
+
+  if (pro) return { ok: true };
+  const used = await triesUsed(supabase, user.id, examId);
+  return { ok: true, triesLeft: Math.max(0, FREE_TRY_LIMIT - used) };
 }
 
 /** Logs one answer within an exam-simulation run (separate from practice log). */
