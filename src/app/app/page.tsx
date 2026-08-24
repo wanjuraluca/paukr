@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AppClient, { type QuizQuestion, type TopicInfo } from "./AppClient";
+import { FREE_TRY_LIMIT } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
@@ -102,18 +103,29 @@ export default async function AppPage() {
   let xpTotal = 0;
   let currentStreak = 0;
   let isAdmin = false;
+  let isPro = false;
+  // Remaining free-tier session starts for this exam (practice runs and exam
+  // simulations share one counter). Pro users are never limited, so this stays
+  // irrelevant for them; the client only reads it when !isPro.
+  let triesLeft = FREE_TRY_LIMIT;
   // How many exam simulations the user has passed in a row (trailing streak of
   // finished attempts scoring >= 50 points), for the "prüfungsbereit" tracker.
   let simPassStreak = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("xp_total, current_streak, is_admin")
+      .select("xp_total, current_streak, is_admin, subscription_tier")
       .eq("id", user.id)
-      .single<{ xp_total: number; current_streak: number; is_admin: boolean }>();
+      .single<{
+        xp_total: number;
+        current_streak: number;
+        is_admin: boolean;
+        subscription_tier: string;
+      }>();
     xpTotal = profile?.xp_total ?? 0;
     currentStreak = profile?.current_streak ?? 0;
     isAdmin = profile?.is_admin ?? false;
+    isPro = profile?.subscription_tier === "pro";
 
     if (exam) {
       const { data: attempts } = await supabase
@@ -129,6 +141,23 @@ export default async function AppPage() {
         const passed = total > 0 && (a.score_correct ?? 0) * 2 >= total; // >= 50%
         if (passed) simPassStreak += 1;
         else break; // A fail (or unscored) ends the trailing streak.
+      }
+
+      if (!isPro) {
+        const [{ count: practiceCount }, { count: simCount }] = await Promise.all([
+          supabase
+            .from("practice_sessions")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("exam_id", exam.id),
+          supabase
+            .from("exam_attempts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("exam_id", exam.id),
+        ]);
+        const used = (practiceCount ?? 0) + (simCount ?? 0);
+        triesLeft = Math.max(0, FREE_TRY_LIMIT - used);
       }
     }
   }
@@ -149,6 +178,8 @@ export default async function AppPage() {
       currentStreak={currentStreak}
       simPassStreak={simPassStreak}
       isAdmin={isAdmin}
+      isPro={isPro}
+      triesLeft={triesLeft}
     />
   );
 }
