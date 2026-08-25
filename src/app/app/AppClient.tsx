@@ -86,22 +86,29 @@ export interface TopicInfo {
   name: string;
   count: number;
 }
-interface Props {
-  examId: string;
-  examName: string;
+// One exam's full content + per-exam user state, as built server-side. The
+// app now holds an array of these instead of one flat set of top-level
+// props, one bundle per active exam.
+export interface ExamBundle {
+  id: string;
+  name: string;
+  description: string;
   topics: TopicInfo[];
   questions: QuizQuestion[];
+  // Remaining free-tier session starts for this exam (only meaningful when
+  // !isPro), computed server-side from practice_sessions + exam_attempts.
+  triesLeft: number;
+  simPassStreak: number;
+  // Deepest finished Blitz run for this exam.
+  bestBlitzDepth: number;
+}
+interface Props {
+  exams: ExamBundle[];
   userName?: string;
   xpTotal?: number;
   currentStreak?: number;
-  simPassStreak?: number;
-  // Deepest finished Blitz run for this exam.
-  bestBlitzDepth?: number;
   isAdmin?: boolean;
   isPro?: boolean;
-  // Remaining free-tier session starts for this exam (only meaningful when
-  // !isPro), computed server-side from practice_sessions + exam_attempts.
-  triesLeft?: number;
 }
 
 /**
@@ -161,23 +168,34 @@ const passColor = (v: number) =>
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
 export default function AppClient({
-  examId,
-  examName,
-  topics,
-  questions,
+  exams,
   userName = "",
   xpTotal = 0,
   currentStreak = 0,
-  simPassStreak = 0,
-  bestBlitzDepth = 0,
   isAdmin = false,
   isPro = false,
-  triesLeft = FREE_TRY_LIMIT,
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("dashboard");
+  // Which exam is currently selected, an index into `exams`. Defaults to the
+  // first one so existing single-exam behaviour is unchanged on first load.
+  const [selectedExamIndex, setSelectedExamIndex] = useState(0);
+  const activeExam: ExamBundle = exams[selectedExamIndex] ?? {
+    id: "",
+    name: "Prüfung",
+    description: "",
+    topics: [],
+    questions: [],
+    triesLeft: FREE_TRY_LIMIT,
+    simPassStreak: 0,
+    bestBlitzDepth: 0,
+  };
+  const examId = activeExam.id;
+  const examName = activeExam.name;
+  const topics = activeExam.topics;
+  const questions = activeExam.questions;
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   // Multi-select (checkbox) picks for question_type = "multiple", by option
@@ -200,12 +218,31 @@ export default function AppClient({
   const [secondsLeft, setSecondsLeft] = useState(SIM_TIME_LIMIT_SECONDS);
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const finishingRef = useRef(false);
-  // Consecutive passed simulations, seeded from the server and updated live as
-  // the user finishes runs this session (server recomputes on next load).
-  const [passStreak, setPassStreak] = useState(simPassStreak);
-  // Local copy of the remaining free tries so the indicator updates instantly
-  // after a session start, without waiting for a full page reload.
-  const [triesLeftState, setTriesLeftState] = useState(triesLeft);
+  // Consecutive passed simulations, keyed by exam id, seeded from the server
+  // and updated live as the user finishes runs this session (server
+  // recomputes on next load). Per-exam so switching exams never leaks one
+  // exam's streak into another's screen.
+  const [passStreakMap, setPassStreakMap] = useState<Record<string, number>>(() =>
+    Object.fromEntries(exams.map((e) => [e.id, e.simPassStreak])),
+  );
+  const passStreak = passStreakMap[examId] ?? 0;
+  const setPassStreak = (updater: number | ((s: number) => number)) =>
+    setPassStreakMap((m) => ({
+      ...m,
+      [examId]: typeof updater === "function" ? (updater as (s: number) => number)(m[examId] ?? 0) : updater,
+    }));
+  // Local copy of the remaining free tries, keyed by exam id, so the
+  // indicator updates instantly after a session start without waiting for a
+  // full page reload, and never shows exam A's count while exam B is active.
+  const [triesLeftMap, setTriesLeftMap] = useState<Record<string, number>>(() =>
+    Object.fromEntries(exams.map((e) => [e.id, e.triesLeft])),
+  );
+  const triesLeftState = triesLeftMap[examId] ?? FREE_TRY_LIMIT;
+  const setTriesLeftState = (updater: number | ((t: number) => number)) =>
+    setTriesLeftMap((m) => ({
+      ...m,
+      [examId]: typeof updater === "function" ? (updater as (t: number) => number)(m[examId] ?? FREE_TRY_LIMIT) : updater,
+    }));
   // Which mode was blocked by the paywall, only used to render its copy.
   const [paywallMode, setPaywallMode] = useState<PracticeMode | "blitz">("practice");
 
@@ -237,7 +274,17 @@ export default function AppClient({
   const [blitzFlash, setBlitzFlash] = useState<
     { key: number; text: string; good: boolean } | null
   >(null);
-  const [bestDepth, setBestDepth] = useState(bestBlitzDepth);
+  // Best Blitz depth, keyed by exam id, so the number shown next to the
+  // Blitz card always matches whichever exam is currently selected.
+  const [bestDepthMap, setBestDepthMap] = useState<Record<string, number>>(() =>
+    Object.fromEntries(exams.map((e) => [e.id, e.bestBlitzDepth])),
+  );
+  const bestDepth = bestDepthMap[examId] ?? 0;
+  const setBestDepth = (updater: number | ((b: number) => number)) =>
+    setBestDepthMap((m) => ({
+      ...m,
+      [examId]: typeof updater === "function" ? (updater as (b: number) => number)(m[examId] ?? 0) : updater,
+    }));
 
   useEffect(() => {
     const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -289,7 +336,10 @@ export default function AppClient({
     await createClient().auth.signOut();
     router.push("/");
   };
-  const openExam = () => setScreen("detail");
+  const openExam = (i: number) => {
+    setSelectedExamIndex(i);
+    setScreen("detail");
+  };
   const resetQuiz = () => {
     setQIndex(0);
     setSelected(null);
@@ -866,67 +916,44 @@ export default function AppClient({
             <p style={{ fontSize: "19px", color: "var(--muted)", margin: 0, maxWidth: "560px" }}>Starte da, wo du aufgehört hast, oder such dir ein neues Ziel. Weitere Prüfungen kommen bald dazu.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "20px" }}>
-            <button
-              onClick={openExam}
-              className="pk-exam-card"
-              style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .05s both", textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "26px", display: "flex", flexDirection: "column", gap: 0, transition: "transform .25s, box-shadow .3s, border-color .3s" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "color-mix(in oklch, var(--accent) 14%, var(--bg))", display: "grid", placeItems: "center" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 3h8l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
-                    <path d="M8 11l2.5 2.5L16 8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".03em", color: "var(--accent-strong)", background: "color-mix(in oklch, var(--accent) 13%, var(--bg))", padding: "5px 11px", borderRadius: "100px" }}>AKTIV</span>
-              </div>
-              <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em", color: "var(--text)" }}>{examName}</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>Fachinformatiker/in, Abschlussprüfung Teil 2.</p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Fragen verfügbar</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{questions.length}</span>
-              </div>
-              <div style={{ height: "7px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
-                <div style={{ width: `${masteredPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
-              </div>
-            </button>
-
-            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .12s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "var(--bg-alt)", display: "grid", placeItems: "center" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <ellipse cx="12" cy="6" rx="7" ry="3" stroke="var(--muted)" strokeWidth="2" />
-                    <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" stroke="var(--muted)" strokeWidth="2" />
-                  </svg>
-                </span>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", background: "var(--bg-alt)", padding: "5px 11px", borderRadius: "100px" }}>BALD</span>
-              </div>
-              <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em" }}>IHK Systemintegration</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Fachinformatiker/in, in Vorbereitung.</p>
-            </div>
-
-            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "var(--bg-alt)", display: "grid", placeItems: "center" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="4" stroke="var(--muted)" strokeWidth="2" />
-                    <path d="M9 15l2-6 2 4 1.5-3" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", background: "var(--bg-alt)", padding: "5px 11px", borderRadius: "100px" }}>BALD</span>
-              </div>
-              <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em" }}>Kaufmann/-frau E-Commerce</h3>
-              <p style={{ fontSize: "15px", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Abschlussprüfung, in Vorbereitung.</p>
-            </div>
-
-            <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .24s both", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "22px", padding: "26px", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "220px", color: "var(--muted)" }}>
-              <span style={{ width: "44px", height: "44px", borderRadius: "13px", border: "1px dashed var(--border)", display: "grid", placeItems: "center", marginBottom: "14px" }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </span>
-              <span style={{ fontSize: "15px", fontWeight: 600 }}>Weitere Prüfungen folgen</span>
-            </div>
+            {exams.map((e, i) => {
+              const eMasteredPct =
+                e.questions.length === 0
+                  ? 0
+                  : Math.round(
+                      (e.questions.filter((x) => x.lastCorrect === true).length /
+                        e.questions.length) *
+                        100,
+                    );
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => openExam(i)}
+                  className="pk-exam-card"
+                  style={{ animation: `pk-revUp .6s cubic-bezier(.16,1,.3,1) ${(i * 0.06).toFixed(2)}s both`, textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "26px", display: "flex", flexDirection: "column", gap: 0, transition: "transform .25s, box-shadow .3s, border-color .3s" }}
+                  onAnimationEnd={(ev) => { ev.currentTarget.style.animation = "none"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                    <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "color-mix(in oklch, var(--accent) 14%, var(--bg))", display: "grid", placeItems: "center" }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 3h8l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
+                        <path d="M8 11l2.5 2.5L16 8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".03em", color: "var(--accent-strong)", background: "color-mix(in oklch, var(--accent) 13%, var(--bg))", padding: "5px 11px", borderRadius: "100px" }}>AKTIV</span>
+                  </div>
+                  <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em", color: "var(--text)" }}>{e.name}</h3>
+                  <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>{e.description || "IHK-Prüfung."}</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Fragen verfügbar</span>
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{e.questions.length}</span>
+                  </div>
+                  <div style={{ height: "7px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
+                    <div style={{ width: `${eMasteredPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </main>
       )}
@@ -935,9 +962,9 @@ export default function AppClient({
       {screen === "detail" && (
         <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>IHK · Fachinformatiker/in</span>
-            <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>Anwendungsentwicklung</h1>
-            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>Bereite dich gezielt auf die Abschlussprüfung Teil 2 vor: Themen üben oder unter echten Bedingungen simulieren.</p>
+            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>IHK-Prüfung</span>
+            <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>{examName}</h1>
+            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder unter echten Bedingungen simulieren."}</p>
           </div>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
@@ -1616,7 +1643,7 @@ export default function AppClient({
             </span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,34px)", letterSpacing: "-.03em", margin: "0 0 10px" }}>Zeit abgelaufen</h1>
             <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 28px", lineHeight: 1.55 }}>
-              {blitzDepth > bestBlitzDepth
+              {blitzDepth > activeExam.bestBlitzDepth
                 ? "Neue Bestmarke. Der nächste Lauf geht tiefer."
                 : "Der nächste Lauf geht tiefer."}
             </p>

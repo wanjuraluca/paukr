@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import AppClient, { type QuizQuestion, type TopicInfo } from "./AppClient";
+import AppClient, { type ExamBundle } from "./AppClient";
 import { FREE_TRY_LIMIT } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,9 @@ function shuffle<T>(arr: T[]): T[] {
 
 interface ExamRow {
   id: string;
+  slug: string;
   name: string;
+  description: string | null;
   topics: { id: string; name: string; sort_order: number }[];
 }
 interface QuestionRow {
@@ -41,16 +43,42 @@ export default async function AppPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: exam } = await supabase
+  const { data: examRows } = await supabase
     .from("exams")
-    .select("id, name, topics(id, name, sort_order)")
-    .eq("slug", "fiae-ae")
-    .single<ExamRow>();
+    .select("id, slug, name, description, topics(id, name, sort_order)")
+    .eq("is_active", true)
+    .order("sort_order")
+    .returns<ExamRow[]>();
 
-  let questions: QuizQuestion[] = [];
-  let topics: TopicInfo[] = [];
+  // Real per-user stats (fall back to zero for a brand-new profile). These
+  // are global to the user, not per exam.
+  let xpTotal = 0;
+  let currentStreak = 0;
+  let isAdmin = false;
+  let isPro = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("xp_total, current_streak, is_admin, subscription_tier")
+      .eq("id", user.id)
+      .single<{
+        xp_total: number;
+        current_streak: number;
+        is_admin: boolean;
+        subscription_tier: string;
+      }>();
+    xpTotal = profile?.xp_total ?? 0;
+    currentStreak = profile?.current_streak ?? 0;
+    isAdmin = profile?.is_admin ?? false;
+    isPro = profile?.subscription_tier === "pro";
+  }
 
-  if (exam) {
+  // Builds one exam's full bundle: its shuffled question pool (with this
+  // user's spaced-repetition state joined in), topic list with counts, and
+  // this exam's free-tier try/streak/Blitz numbers. An exam with zero
+  // approved questions yet (e.g. freshly seeded, content still in progress)
+  // still gets a valid, empty bundle rather than being skipped.
+  async function buildExamBundle(exam: ExamRow): Promise<ExamBundle> {
     const { data: rows } = await supabase
       .from("questions")
       .select(
@@ -59,7 +87,6 @@ export default async function AppPage() {
       .eq("topics.exam_id", exam.id)
       .returns<QuestionRow[]>();
 
-    // The user's spaced-repetition state, keyed by question id.
     const reviews = new Map<string, ReviewRow>();
     if (user) {
       const { data: rev } = await supabase
@@ -70,7 +97,7 @@ export default async function AppPage() {
       for (const r of rev ?? []) reviews.set(r.question_id, r);
     }
 
-    questions = (rows ?? []).map((r) => {
+    const questions: ExamBundle["questions"] = (rows ?? []).map((r) => {
       const rev = reviews.get(r.id);
       return {
         id: r.id,
@@ -95,43 +122,21 @@ export default async function AppPage() {
 
     const counts = new Map<string, number>();
     for (const a of questions) counts.set(a.topic, (counts.get(a.topic) ?? 0) + 1);
-    topics = (exam.topics ?? [])
+    const topics = (exam.topics ?? [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((t) => ({ name: t.name, count: counts.get(t.name) ?? 0 }));
-  }
 
-  // Real per-user stats (fall back to zero for a brand-new profile).
-  let xpTotal = 0;
-  let currentStreak = 0;
-  let isAdmin = false;
-  let isPro = false;
-  // Remaining free-tier session starts for this exam (practice runs and exam
-  // simulations share one counter). Pro users are never limited, so this stays
-  // irrelevant for them; the client only reads it when !isPro.
-  let triesLeft = FREE_TRY_LIMIT;
-  // How many exam simulations the user has passed in a row (trailing streak of
-  // finished attempts scoring >= 50 points), for the "prüfungsbereit" tracker.
-  let simPassStreak = 0;
-  // Deepest finished Blitz run for this exam, shown next to the mode buttons.
-  let bestBlitzDepth = 0;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("xp_total, current_streak, is_admin, subscription_tier")
-      .eq("id", user.id)
-      .single<{
-        xp_total: number;
-        current_streak: number;
-        is_admin: boolean;
-        subscription_tier: string;
-      }>();
-    xpTotal = profile?.xp_total ?? 0;
-    currentStreak = profile?.current_streak ?? 0;
-    isAdmin = profile?.is_admin ?? false;
-    isPro = profile?.subscription_tier === "pro";
+    // Remaining free-tier session starts for this exam (practice runs and
+    // exam simulations share one counter). Pro users are never limited.
+    let triesLeft = FREE_TRY_LIMIT;
+    // How many exam simulations the user has passed in a row (trailing
+    // streak of finished attempts scoring >= 50 points).
+    let simPassStreak = 0;
+    // Deepest finished Blitz run for this exam.
+    let bestBlitzDepth = 0;
 
-    if (exam) {
+    if (user) {
       const { data: attempts } = await supabase
         .from("exam_attempts")
         .select("score_correct, score_total, finished_at")
@@ -160,27 +165,40 @@ export default async function AppPage() {
       if (!isPro) {
         const [{ count: practiceCount }, { count: simCount }, { count: blitzCount }] =
           await Promise.all([
-          supabase
-            .from("practice_sessions")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("exam_id", exam.id),
-          supabase
-            .from("exam_attempts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("exam_id", exam.id),
-          supabase
-            .from("blitz_runs")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("exam_id", exam.id),
-        ]);
+            supabase
+              .from("practice_sessions")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("exam_id", exam.id),
+            supabase
+              .from("exam_attempts")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("exam_id", exam.id),
+            supabase
+              .from("blitz_runs")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("exam_id", exam.id),
+          ]);
         const used = (practiceCount ?? 0) + (simCount ?? 0) + (blitzCount ?? 0);
         triesLeft = Math.max(0, FREE_TRY_LIMIT - used);
       }
     }
+
+    return {
+      id: exam.id,
+      name: exam.name,
+      description: exam.description ?? "",
+      topics,
+      questions,
+      triesLeft,
+      simPassStreak,
+      bestBlitzDepth,
+    };
   }
+
+  const exams = await Promise.all((examRows ?? []).map(buildExamBundle));
 
   const displayName =
     (user?.user_metadata?.display_name as string | undefined) ||
@@ -189,18 +207,12 @@ export default async function AppPage() {
 
   return (
     <AppClient
-      examId={exam?.id ?? ""}
-      examName={exam?.name ?? "Prüfung"}
-      topics={topics}
-      questions={questions}
+      exams={exams}
       userName={displayName}
       xpTotal={xpTotal}
       currentStreak={currentStreak}
-      simPassStreak={simPassStreak}
-      bestBlitzDepth={bestBlitzDepth}
       isAdmin={isAdmin}
       isPro={isPro}
-      triesLeft={triesLeft}
     />
   );
 }
