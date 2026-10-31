@@ -719,6 +719,7 @@ export default function Home() {
               { label: "Nutzungsbedingungen", href: "/agb" },
               { label: "Datenschutz", href: "/datenschutz" },
               { label: "Impressum", href: "/impressum" },
+              { label: "Verträge hier kündigen", href: "/kuendigen" },
             ].map((l) => (
               <a key={l.label} href={l.href} className="pk-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
                 {l.label}

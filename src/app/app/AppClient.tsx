@@ -915,7 +915,7 @@ export default function AppClient({
                     className="pk-menu-item"
                     style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--accent-strong)", border: "none", transition: "background .18s, transform .12s" }}
                   >
-                    Auf Pro upgraden
+                    {isPro ? "Abo verwalten" : "Auf Pro upgraden"}
                   </button>
                   {isAdmin && (
                     <button

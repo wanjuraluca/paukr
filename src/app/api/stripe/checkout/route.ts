@@ -26,6 +26,16 @@ export async function POST() {
   const stripe = getStripe();
 
   let customerId = profile?.stripe_customer_id ?? null;
+  // A stored id can be stale (deleted customer, or created with the test keys
+  // before switching to live), so make sure it still exists.
+  if (customerId) {
+    try {
+      const existing = await stripe.customers.retrieve(customerId);
+      if (existing.deleted) customerId = null;
+    } catch {
+      customerId = null;
+    }
+  }
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user.email,
