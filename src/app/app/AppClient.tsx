@@ -11,6 +11,7 @@ import {
   startPracticeSession,
   startBlitzRun,
   finishBlitzRun,
+  type RecordAttemptResult,
 } from "./actions";
 import { FREE_TRY_LIMIT } from "@/lib/limits";
 import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
@@ -177,8 +178,26 @@ export default function AppClient({
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("dashboard");
+  // The profile menu counts as open only on the screen it was opened on, so it
+  // closes by itself whenever the screen changes.
+  const [menuScreen, setMenuScreen] = useState<Screen | null>(null);
+  const menuOpen = menuScreen === screen;
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuScreen(null);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-profile-menu]")) setMenuScreen(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [menuOpen]);
   // Which exam is currently selected, an index into `exams`. Defaults to the
   // first one so existing single-exam behaviour is unchanged on first load.
   const [selectedExamIndex, setSelectedExamIndex] = useState(0);
@@ -206,6 +225,18 @@ export default function AppClient({
   const [xp, setXp] = useState(xpTotal);
   const [xpDisplay, setXpDisplay] = useState(xpTotal);
   const [xpBump, setXpBump] = useState(0);
+  const [streak, setStreak] = useState(currentStreak);
+  const xpAnimatingRef = useRef(false);
+  // Takes the real totals the server returns after each answer, so XP and
+  // streak stay correct on every screen (Blitz awards XP without an animation).
+  const syncTotals = (res: RecordAttemptResult) => {
+    if (!res.ok) return;
+    if (res.xpTotal !== undefined) {
+      setXp(res.xpTotal);
+      if (!xpAnimatingRef.current) setXpDisplay(res.xpTotal);
+    }
+    if (res.currentStreak !== undefined) setStreak(res.currentStreak);
+  };
   const [results, setResults] = useState<{ topic: string; correct: boolean }[]>([]);
   // The questions for the current run, and which mode built it.
   const [session, setSession] = useState<QuizQuestion[]>([]);
@@ -507,7 +538,7 @@ export default function AppClient({
     if (blitzEndedRef.current || !blitzQ) return;
 
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(blitzQ.id, correct, responseMs, optionIds);
+    void recordAttempt(blitzQ.id, correct, responseMs, optionIds).then(syncTotals);
 
     const depth = blitzDepthRef.current;
     let deltaSeconds = 0;
@@ -623,6 +654,7 @@ export default function AppClient({
     const dur = 700;
     const t0 = performance.now();
     setXpBump((b) => b + 1);
+    xpAnimatingRef.current = true;
     const step = (now: number) => {
       const p = Math.min(1, (now - t0) / dur);
       const val = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
@@ -630,6 +662,7 @@ export default function AppClient({
       if (p < 1) {
         rafRef.current = requestAnimationFrame(step);
       } else {
+        xpAnimatingRef.current = false;
         setXp(to);
       }
     };
@@ -648,7 +681,7 @@ export default function AppClient({
     // Persist the attempt + advance spaced repetition (fire-and-forget; the
     // server is the source of truth on the next load).
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(q.id, opt.isCorrect, responseMs, [opt.id]);
+    void recordAttempt(q.id, opt.isCorrect, responseMs, [opt.id]).then(syncTotals);
     if (mode === "sim" && examAttemptId) {
       void recordExamAnswer(examAttemptId, q.id, opt.id, opt.isCorrect);
     }
@@ -680,7 +713,7 @@ export default function AppClient({
 
     const optionIds = selectedMulti.map((i) => q.options[i].id);
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(q.id, isCorrect, responseMs, optionIds);
+    void recordAttempt(q.id, isCorrect, responseMs, optionIds).then(syncTotals);
     if (mode === "sim" && examAttemptId) {
       void recordExamAnswer(examAttemptId, q.id, null, isCorrect, optionIds);
     }
@@ -839,7 +872,7 @@ export default function AppClient({
               <span style={{ ...heading, fontWeight: 700, fontSize: "20px", letterSpacing: "-.02em" }}>{PRODUCT_NAME}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 6px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
-              <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>{currentStreak}</span>
+              <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>{streak}</span>
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
             </div>
             <button
@@ -859,10 +892,10 @@ export default function AppClient({
                 </svg>
               )}
             </button>
-            <div style={{ position: "relative" }}>
+            <div data-profile-menu style={{ position: "relative" }}>
               <button
                 aria-label="Profil"
-                onClick={() => setMenuOpen((o) => !o)}
+                onClick={() => setMenuScreen((s) => (s === screen ? null : screen))}
                 className="pk-profile-btn"
                 style={{ ...heading, width: "40px", height: "40px", borderRadius: "50%", border: "1px solid var(--border)", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", cursor: "pointer", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "15px", transition: "transform .18s" }}
               >
@@ -975,7 +1008,7 @@ export default function AppClient({
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>XP gesammelt</div>
-              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xpTotal.toLocaleString("de-DE")}</div>
+              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xp.toLocaleString("de-DE")}</div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>Aktuelle Serie</div>
@@ -983,7 +1016,7 @@ export default function AppClient({
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2c1 3 3 4.5 3 7a3 3 0 0 1-6 0c0-1 .4-1.8 1-2.5C9 9 8 11 8 13a4 4 0 0 0 8 0c0-3.5-2-6.5-4-11Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>{currentStreak} {currentStreak === 1 ? "Tag" : "Tage"}</span>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>{streak} {streak === 1 ? "Tag" : "Tage"}</span>
               </div>
             </div>
           </div>
