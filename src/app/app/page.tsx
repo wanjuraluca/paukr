@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import AppClient, { type ExamBundle } from "./AppClient";
 import { FREE_TRY_LIMIT, PROBE_SIM_SECONDS } from "@/lib/limits";
+import { liveStreak } from "@/lib/streak";
 
 export const dynamic = "force-dynamic";
 
@@ -59,16 +60,17 @@ export default async function AppPage() {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("xp_total, current_streak, is_admin, subscription_tier")
+      .select("xp_total, current_streak, last_activity_date, is_admin, subscription_tier")
       .eq("id", user.id)
       .single<{
         xp_total: number;
         current_streak: number;
+        last_activity_date: string | null;
         is_admin: boolean;
         subscription_tier: string;
       }>();
     xpTotal = profile?.xp_total ?? 0;
-    currentStreak = profile?.current_streak ?? 0;
+    currentStreak = liveStreak(profile?.current_streak ?? 0, profile?.last_activity_date ?? null);
     isAdmin = profile?.is_admin ?? false;
     isPro = profile?.subscription_tier === "pro";
   }
