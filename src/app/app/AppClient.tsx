@@ -13,7 +13,7 @@ import {
   finishBlitzRun,
   type RecordAttemptResult,
 } from "./actions";
-import { FREE_TRY_LIMIT } from "@/lib/limits";
+import { FREE_TRY_LIMIT, PROBE_SIM_QUESTIONS, PROBE_SIM_SECONDS } from "@/lib/limits";
 import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
 import {
   BLITZ_START_SECONDS,
@@ -247,6 +247,7 @@ export default function AppClient({
   // Exam-simulation-only state: the running attempt, countdown and final grade.
   const [examAttemptId, setExamAttemptId] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(SIM_TIME_LIMIT_SECONDS);
+  const [simProbe, setSimProbe] = useState(false);
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const finishingRef = useRef(false);
   // Consecutive passed simulations, keyed by exam id, seeded from the server
@@ -403,14 +404,15 @@ export default function AppClient({
   };
   const startPractice = () => void startPracticeMode("practice");
   const startWrongPractice = () => void startPracticeMode("wrong");
-  const startSimulation = async () => {
-    if (!simUnlocked) return; // Gated until the pool is mastered enough.
+  const runSimulation = async (probe: boolean) => {
+    if (!probe && !simUnlocked) return; // Gated until the pool is mastered enough.
+    const timeLimit = probe ? PROBE_SIM_SECONDS : SIM_TIME_LIMIT_SECONDS;
     if (!isPro && triesLeftState <= 0) {
       setPaywallMode("sim");
       setScreen("paywall");
       return;
     }
-    const res = await startExamAttempt(examId, SIM_TIME_LIMIT_SECONDS);
+    const res = await startExamAttempt(examId, timeLimit);
     if (!res.ok) {
       setPaywallMode("sim");
       setScreen("paywall");
@@ -418,14 +420,17 @@ export default function AppClient({
     }
     if (!isPro) setTriesLeftState((t) => Math.max(0, t - 1));
     setMode("sim");
-    setSession(buildSession(questions, "sim"));
+    setSimProbe(probe);
+    setSession(probe ? shuffleArr(questions).slice(0, PROBE_SIM_QUESTIONS) : buildSession(questions, "sim"));
     resetQuiz();
-    setSecondsLeft(SIM_TIME_LIMIT_SECONDS);
+    setSecondsLeft(timeLimit);
     setGradeResult(null);
     finishingRef.current = false;
     setExamAttemptId(res.attemptId ?? null);
     setScreen("practice");
   };
+  const startSimulation = () => void runSimulation(false);
+  const startProbe = () => void runSimulation(true);
   // Grades and closes out the exam-simulation run (called on time-up or after
   // the last question). Unanswered questions count as incorrect, same as a
   // blank answer in the real written exam.
@@ -437,7 +442,7 @@ export default function AppClient({
     const grade = gradeExam(correctCount, total);
     setGradeResult(grade);
     // Update the consecutive-pass streak: a pass extends it, a fail resets it.
-    setPassStreak((s) => (grade.passed ? s + 1 : 0));
+    if (!simProbe) setPassStreak((s) => (grade.passed ? s + 1 : 0));
     if (examAttemptId) void finishExamAttempt(examAttemptId, correctCount, total);
     setScreen("result");
   };
@@ -1093,7 +1098,7 @@ export default function AppClient({
               <div style={{ ...heading, fontWeight: 600, fontSize: "22px", marginBottom: "6px" }}>Prüfungssimulation</div>
               <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>
                 {simUnlocked
-                  ? "Zeitlimit, echtes Prüfungsformat, ehrliche Auswertung."
+                  ? "Mit Zeitlimit, ohne Hilfen und mit Auswertung am Ende."
                   : `Freigeschaltet ab ${SIM_UNLOCK_PCT}% richtig beantworteter Fragen.`}
               </div>
             </button>
@@ -1141,6 +1146,16 @@ export default function AppClient({
               <p style={{ fontSize: "14px", color: "var(--muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
                 Übe weiter im Themenmodus. Jede Frage, die du richtig hast, bringt dich näher an die Freischaltung.
               </p>
+              <button
+                onClick={startProbe}
+                className="pk-mode-secondary"
+                style={{ marginTop: "16px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "var(--text)", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "14px", padding: "16px 18px", transition: "transform .18s, border-color .2s" }}
+              >
+                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "4px" }}>Probe-Simulation starten</div>
+                <div style={{ fontSize: "14px", color: "var(--muted)", lineHeight: 1.5 }}>
+                  {PROBE_SIM_QUESTIONS} Fragen in {PROBE_SIM_SECONDS / 60} Minuten, Auswertung erst am Ende. Zählt nicht für dein Simulationsziel{isPro ? "." : " und verbraucht eine Lernsitzung."}
+                </div>
+              </button>
             </div>
           ) : examReady ? (
             <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--accent) 12%, var(--surface))", border: "1px solid color-mix(in oklch, var(--accent) 45%, var(--border))", borderRadius: "18px", padding: "22px 24px", marginBottom: "40px" }}>
@@ -1425,7 +1440,7 @@ export default function AppClient({
                 ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Grenze in der Simulation: ${PASS_THRESHOLD}). Übungswert, keine amtliche Bewertung.`
                 : `${correctCount} von ${answeredTotal} Fragen richtig. ${passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
             </p>
-            {mode === "sim" && (
+            {mode === "sim" && !simProbe && (
               <div style={{ marginBottom: "40px" }}>
                 {examReady ? (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "9px", padding: "10px 18px", borderRadius: "100px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", color: "var(--accent-strong)", fontSize: "15px", fontWeight: 700 }}>
@@ -1466,7 +1481,7 @@ export default function AppClient({
           )}
           <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
             <button
-              onClick={mode === "sim" ? startSimulation : startPractice}
+              onClick={mode === "sim" ? (simProbe ? startProbe : startSimulation) : startPractice}
               className="pk-price-btn-ghost"
               style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
             >

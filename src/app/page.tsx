@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 
 const PRODUCT_NAME = "paukr";
 
-// Real, reviewed question count in the FIAE Anwendungsentwicklung pool as of
+// Real, reviewed question count across all exams as of
 // this deploy (see supabase/migrations/*_seed_fiae_ae_*.sql). This page is a
 // static client component with no DB access, so update this by hand whenever
 // a new batch of questions gets approved via /review, rather than showing a
 // stale or made-up number.
-const TOTAL_QUESTIONS = 300;
+const TOTAL_QUESTIONS = 600;
 // Rounded down to the nearest 10 with a "+", so it reads honestly even as
 // the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
 // An exact multiple of 10 is shown as is, since "300+" would overstate 300.
@@ -607,7 +607,7 @@ export default function Home() {
         <div className="pk-stats-grid" style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
           {[
             { value: QUESTION_COUNT_LABEL, label: "Übungsfragen im Pool", border: false },
-            { value: "4", label: "Themengebiete", border: true },
+            { value: "2", label: "Prüfungen", border: true },
             { value: "0 €", label: "Für den Einstieg", border: true },
           ].map((stat) => (
             <div key={stat.label} style={{ padding: "24px 12px", borderLeft: stat.border ? "1px solid var(--border)" : undefined }}>
@@ -653,7 +653,6 @@ export default function Home() {
             </div>
             {/* Pro */}
             <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .1s both", position: "relative", background: "var(--surface)", border: "1.5px solid var(--accent)", borderRadius: "22px", padding: "34px", boxShadow: "0 20px 50px color-mix(in oklch, var(--accent) 18%, transparent)" }}>
-              <span style={{ position: "absolute", top: "-13px", left: "34px", padding: "5px 13px", borderRadius: "100px", background: "var(--accent)", color: "var(--on-accent)", fontSize: "12px", fontWeight: 700, letterSpacing: ".02em" }}>Beliebt</span>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Pro</h3>
               <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Für alle, die ohne Limit üben wollen.</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "26px" }}>
@@ -724,21 +723,6 @@ export default function Home() {
                 {l.label}
               </a>
             ))}
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <a href="#" aria-label="Social" className="pk-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M12 3c-2.5 3-2.5 15 0 18M12 3c2.5 3 2.5 15 0 18M3.5 9h17M3.5 15h17" stroke="currentColor" strokeWidth="1.4" />
-              </svg>
-            </a>
-            <a href="#" aria-label="Social" className="pk-social-btn" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", transition: "color .2s, border-color .2s" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.8" />
-                <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-                <circle cx="16.5" cy="7.5" r="1" fill="currentColor" />
-              </svg>
-            </a>
           </div>
         </div>
         <div style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>

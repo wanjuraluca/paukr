@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AppClient, { type ExamBundle } from "./AppClient";
-import { FREE_TRY_LIMIT } from "@/lib/limits";
+import { FREE_TRY_LIMIT, PROBE_SIM_SECONDS } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +143,7 @@ export default async function AppPage() {
         .eq("user_id", user.id)
         .eq("exam_id", exam.id)
         .not("finished_at", "is", null)
+        .neq("time_limit_seconds", PROBE_SIM_SECONDS)
         .order("finished_at", { ascending: false })
         .returns<{ score_correct: number | null; score_total: number | null }[]>();
       for (const a of attempts ?? []) {
