@@ -74,7 +74,7 @@ export default function Home() {
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         overflowX: "hidden",
         transition: "background .5s ease, color .5s ease",
         fontSize: "17px",
@@ -709,7 +709,7 @@ export default function Home() {
             <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />
             <span style={{ ...heading, fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>{PRODUCT_NAME}</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "26px", fontSize: "15px" }}>
+          <div className="pk-footer-links" style={{ display: "flex", flexWrap: "wrap", gap: "26px", fontSize: "15px" }}>
             {[
               { label: "Features", href: "#features" },
               { label: "Preise", href: "#pricing" },

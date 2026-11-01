@@ -16,7 +16,7 @@ export default function ReportQuestion({ questionId }: { questionId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        style={{ marginTop: "12px", padding: 0, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "13.5px", color: "var(--muted)", textDecoration: "underline" }}
+        style={{ marginTop: "4px", padding: "10px 0", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "13.5px", color: "var(--muted)", textDecoration: "underline" }}
       >
         Fehler in dieser Frage melden
       </button>

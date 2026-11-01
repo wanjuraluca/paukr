@@ -20,7 +20,7 @@ export default function ReviewShell({ children }: { children: React.ReactNode })
       className="eh"
       data-theme={theme}
       data-accent="indigo"
-      style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", transition: "background .3s ease, color .3s ease" }}
+      style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100dvh", transition: "background .3s ease, color .3s ease" }}
     >
       <button
         onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}

@@ -70,7 +70,7 @@ export default function ResetPasswordClient() {
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

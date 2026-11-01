@@ -80,7 +80,7 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
     <div
       className="eh"
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         background: "var(--bg)",
         color: "var(--text)",
         display: "flex",
@@ -95,7 +95,7 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
             <span style={{ ...heading, fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>paukr</span>
           </Link>
           <Link href={isLoggedIn ? "/app" : "/"} style={{ marginLeft: "auto", fontSize: "14px", color: "var(--muted)", textDecoration: "none" }}>
-            {isLoggedIn ? "← Zurück zur App" : "← Zurück zur Startseite"}
+            ← Zurück<span className="pk-hide-narrow">{isLoggedIn ? " zur App" : " zur Startseite"}</span>
           </Link>
         </div>
       </header>

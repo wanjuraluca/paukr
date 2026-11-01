@@ -877,7 +877,7 @@ export default function AppClient({
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         overflowX: "hidden",
         transition: "background .5s ease, color .5s ease",
         fontSize: "17px",
@@ -1091,7 +1091,7 @@ export default function AppClient({
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>XP gesammelt</div>
-              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xp.toLocaleString("de-DE")}</div>
+              <div className="pk-stat-value" style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xp.toLocaleString("de-DE")}</div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>Aktuelle Serie</div>
@@ -1099,7 +1099,7 @@ export default function AppClient({
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2c1 3 3 4.5 3 7a3 3 0 0 1-6 0c0-1 .4-1.8 1-2.5C9 9 8 11 8 13a4 4 0 0 0 8 0c0-3.5-2-6.5-4-11Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>{streak} {streak === 1 ? "Tag" : "Tage"}</span>
+                <span className="pk-stat-value" style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{streak} {streak === 1 ? "Tag" : "Tage"}</span>
               </div>
             </div>
           </div>
@@ -1286,7 +1286,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 3: PRACTICE ===== */}
       {screen === "practice" && (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
             <div style={{ height: "4px", background: "var(--bg-alt)" }}>
               <div style={{ width: practicePct, height: "100%", background: "var(--accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
@@ -1557,7 +1557,7 @@ export default function AppClient({
               </div>
             </div>
           )}
-          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
+          <div className="pk-app-actions" style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
             <button
               onClick={mode === "sim" ? (simProbe ? startProbe : startSimulation) : repeatPractice}
               className="pk-price-btn-ghost"
@@ -1578,7 +1578,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 6: BLITZ RUN ===== */}
       {screen === "blitz" && (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
             <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: "128px" }}>
@@ -1734,7 +1734,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 7: BOON PICK (clock is paused here) ===== */}
       {screen === "boon" && (
-        <main className="pk-app-main" style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
+        <main className="pk-app-main" style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
           <div style={{ width: "100%", maxWidth: "900px" }}>
             <div style={{ textAlign: "center", marginBottom: "34px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Tiefe {blitzDepth} erreicht</span>
@@ -1794,7 +1794,7 @@ export default function AppClient({
                 </div>
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+            <div className="pk-app-actions" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
               <button
                 onClick={() => void startBlitz()}
                 className="pk-price-btn-ghost"
@@ -1833,8 +1833,8 @@ export default function AppClient({
             </p>
 
             <div style={{ textAlign: "left", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 26px", marginBottom: "26px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "18px" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)" }}>9,99 €</span>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", columnGap: "8px", marginBottom: "18px" }}>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)", whiteSpace: "nowrap" }}>9,99 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "14px" }}>/ Monat (Endpreis), monatlich kündbar</span>
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>

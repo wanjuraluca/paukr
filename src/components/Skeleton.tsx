@@ -36,7 +36,7 @@ export function SkelPage({ children }: { children: ReactNode }) {
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         overflowX: "hidden",
         fontSize: "17px",
         lineHeight: 1.6,

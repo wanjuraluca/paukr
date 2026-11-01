@@ -556,3 +556,56 @@ body {
     margin-left: 58px;
   }
 }
+
+/* ===== Touch devices ===== */
+/* No grey flash over every tapped button on iOS and Android. */
+.eh :is(button, a, label, [role="button"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+/* A finger has no hover: without this, the lift or scale of a hover effect
+   sticks to a card after tapping it. The press (:active) feedback stays. */
+@media (hover: none) {
+  .eh [class*="pk-"]:hover:not(:active) {
+    transform: none !important;
+  }
+}
+@media (max-width: 640px) {
+  /* iOS zooms into any field with text smaller than 16px when it gets focus. */
+  .eh :is(input, textarea, select) {
+    font-size: 16px !important;
+  }
+}
+
+/* ===== Small phones ===== */
+/* German compounds like "Anwendungsentwicklung" are wider than a 320px
+   screen at heading sizes, so headings may hyphenate (lang="de") and, as a
+   last resort, break anywhere instead of running off the page. */
+.eh :is(h1, h2, h3) {
+  hyphens: auto;
+  overflow-wrap: break-word;
+  /* Only split long words, and leave at least 4 letters on each side, so
+     "Limit" never becomes "Li-mit". */
+  hyphenate-limit-chars: 10 4 4;
+  -webkit-hyphenate-limit-before: 4;
+  -webkit-hyphenate-limit-after: 4;
+}
+@media (max-width: 640px) {
+  .pk-hide-narrow {
+    display: none;
+  }
+  /* Footer links sit close together, give each a finger-sized row. */
+  .pk-footer-links {
+    gap: 4px 22px !important;
+  }
+  .pk-footer-links a {
+    padding: 10px 0;
+  }
+}
+@media (max-width: 380px) {
+  .pk-stat-value {
+    font-size: 24px !important;
+  }
+  .pk-app-actions {
+    grid-template-columns: 1fr !important;
+  }
+}

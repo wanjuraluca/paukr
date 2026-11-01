@@ -20,7 +20,7 @@ export default function LegalShell({ children }: { children: React.ReactNode }) 
       className="eh"
       data-theme={theme}
       data-accent="indigo"
-      style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", transition: "background .3s ease, color .3s ease" }}
+      style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100dvh", transition: "background .3s ease, color .3s ease" }}
     >
       <header style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
@@ -28,7 +28,7 @@ export default function LegalShell({ children }: { children: React.ReactNode }) 
             <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />
             <span style={{ fontFamily: "var(--font-space), sans-serif", fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>paukr</span>
           </a>
-          <a href="/" style={{ marginLeft: "auto", fontSize: "14px", color: "var(--muted)", textDecoration: "none" }}>← Zurück zur Startseite</a>
+          <a href="/" style={{ marginLeft: "auto", fontSize: "14px", color: "var(--muted)", textDecoration: "none" }}>← Zurück<span className="pk-hide-narrow"> zur Startseite</span></a>
           <button
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             aria-label="Modus wechseln"
