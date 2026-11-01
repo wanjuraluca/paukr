@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import { EARLY_START_CONSENT } from "@/lib/legal-texts";
 
@@ -51,7 +52,7 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
 
   async function handleUpgrade() {
     if (!isLoggedIn) {
-      window.location.href = "/";
+      window.location.href = "/auth?next=/upgrade";
       return;
     }
     setLoading(true);
@@ -83,11 +84,22 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
         background: "var(--bg)",
         color: "var(--text)",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 20px",
+        flexDirection: "column",
       }}
     >
+      <header style={{ borderBottom: "1px solid var(--border)" }}>
+        <div style={{ maxWidth: "880px", margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: "14px" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "var(--text)" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />
+            <span style={{ ...heading, fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>paukr</span>
+          </Link>
+          <Link href={isLoggedIn ? "/app" : "/"} style={{ marginLeft: "auto", fontSize: "14px", color: "var(--muted)", textDecoration: "none" }}>
+            {isLoggedIn ? "← Zurück zur App" : "← Zurück zur Startseite"}
+          </Link>
+        </div>
+      </header>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
       <div style={{ maxWidth: "880px", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <h1 style={{ ...heading, fontSize: "34px", fontWeight: 700, letterSpacing: "-.02em", margin: 0 }}>
@@ -233,6 +245,7 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
