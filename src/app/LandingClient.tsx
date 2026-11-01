@@ -5,19 +5,12 @@ import { useRouter } from "next/navigation";
 
 const PRODUCT_NAME = "paukr";
 
-// Real, reviewed question count across all exams as of
-// this deploy (see supabase/migrations/*_seed_fiae_ae_*.sql). This page is a
-// static client component with no DB access, so update this by hand whenever
-// a new batch of questions gets approved via /review, rather than showing a
-// stale or made-up number.
-const TOTAL_QUESTIONS = 600;
 // Rounded down to the nearest 10 with a "+", so it reads honestly even as
 // the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
 // An exact multiple of 10 is shown as is, since "300+" would overstate 300.
-const QUESTION_COUNT_LABEL =
-  TOTAL_QUESTIONS % 10 === 0
-    ? `${TOTAL_QUESTIONS}`
-    : `${Math.floor(TOTAL_QUESTIONS / 10) * 10}+`;
+function questionCountLabel(total: number): string {
+  return total % 10 === 0 ? `${total}` : `${Math.floor(total / 10) * 10}+`;
+}
 
 function CheckItem({ text, filled }: { text: string; filled: boolean }) {
   return (
@@ -48,8 +41,15 @@ function CheckItem({ text, filled }: { text: string; filled: boolean }) {
   );
 }
 
-export default function Home() {
+export default function LandingClient({
+  questionCount,
+  examCount,
+}: {
+  questionCount: number;
+  examCount: number;
+}) {
   const router = useRouter();
+  const QUESTION_COUNT_LABEL = questionCountLabel(questionCount);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
@@ -607,7 +607,7 @@ export default function Home() {
         <div className="pk-stats-grid" style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
           {[
             { value: QUESTION_COUNT_LABEL, label: "Übungsfragen im Pool", border: false },
-            { value: "2", label: "Prüfungen", border: true },
+            { value: String(examCount), label: examCount === 1 ? "Prüfung" : "Prüfungen", border: true },
             { value: "0 €", label: "Für den Einstieg", border: true },
           ].map((stat) => (
             <div key={stat.label} style={{ padding: "24px 12px", borderLeft: stat.border ? "1px solid var(--border)" : undefined }}>
