@@ -69,7 +69,7 @@ export default function AgbPage() {
         Pro läuft jeweils einen Monat und verlängert sich automatisch um einen weiteren Monat, wenn du nicht kündigst. Du
         kannst jederzeit zum Ende des bezahlten Monats kündigen, online unter{" "}
         <a href="/kuendigen" style={link}>Verträge hier kündigen</a> oder per E-Mail. Das Recht zur außerordentlichen
-        Kündigung aus wichtigem Grund bleibt unberührt. Dein kostenloses Konto kannst du jederzeit per E-Mail löschen lassen.
+        Kündigung aus wichtigem Grund bleibt unberührt. Dein Konto kannst du jederzeit selbst unter <a href="/konto" style={link}>Dein Konto</a> oder per E-Mail löschen.
       </p>
 
       <h2 style={h2}>8. Widerrufsrecht</h2>

@@ -47,6 +47,10 @@ export default function DatenschutzPage() {
         deine Erklärung und senden dir die Eingangsbestätigung (Art. 6 Abs. 1 lit. c DSGVO).
       </p>
       <p>
+        <strong style={strong}>Fehlermeldungen zu Fragen.</strong> Meldest du einen Fehler in einer Frage, speichern wir
+        deinen Text, die Frage und dein Konto, um den Fehler zu prüfen (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+      <p>
         <strong style={strong}>E-Mails.</strong> Wir senden dir nur Mails, die zum Konto oder Vertrag gehören, zum Beispiel
         Kontobestätigung, Passwort zurücksetzen, Vertragsbestätigung oder Eingangsbestätigungen. Werbung versenden wir nicht.
       </p>
@@ -80,8 +84,8 @@ export default function DatenschutzPage() {
 
       <h2 style={h2}>5. Speicherdauer</h2>
       <p>
-        Kontodaten und Lernfortschritt speichern wir, solange dein Konto besteht. Löschen kannst du das Konto mit einer Mail
-        an {mail}. Rechnungs- und Buchungsbelege müssen wir nach den gesetzlichen Fristen aufbewahren, in der Regel bis zu 8
+        Kontodaten und Lernfortschritt speichern wir, solange dein Konto besteht. Löschen kannst du das Konto selbst unter{" "}
+        <a href="/konto" style={{ color: "var(--accent-strong)" }}>Dein Konto</a> oder mit einer Mail an {mail}. Rechnungs- und Buchungsbelege müssen wir nach den gesetzlichen Fristen aufbewahren, in der Regel bis zu 8
         oder 10 Jahre. Erklärungen zu Widerruf und Kündigung bewahren wir bis zum Ablauf der Verjährungsfristen auf.
       </p>
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { reviewCard, freshCard, type SrsState } from "@/lib/srs";
 import { FREE_TRY_LIMIT } from "@/lib/limits";
 
@@ -396,4 +397,29 @@ function advanceStreak(
     .slice(0, 10);
   const streak = lastDate === yesterday ? current + 1 : 1;
   return { streak, longest: Math.max(longest, streak) };
+}
+
+/** Stores a learner's report about a wrong or unclear question. */
+export async function reportQuestion(questionId: string, message: string): Promise<{ ok: boolean }> {
+  const text = message.trim().slice(0, 1000);
+  if (!text) return { ok: false };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const admin = createAdminClient();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("question_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", since);
+  if ((count ?? 0) >= 20) return { ok: false };
+
+  const { error } = await admin
+    .from("question_reports")
+    .insert({ question_id: questionId, user_id: user.id, message: text });
+  return { ok: !error };
 }

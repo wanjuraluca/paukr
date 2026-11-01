@@ -7,6 +7,7 @@ import {
   unapproveQuestion,
   rejectQuestion,
   approveAll,
+  resolveReport,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,13 @@ export default async function ReviewPage() {
   const passRateLabel = scored.length > 0 ? `${Math.round((passedCount / scored.length) * 100)}%` : "–";
   const attemptCount = scored.length;
 
+  const { data: reports } = await supabase
+    .from("question_reports")
+    .select("id, message, created_at, questions(question_text)")
+    .is("resolved_at", null)
+    .order("created_at", { ascending: false })
+    .returns<{ id: string; message: string; created_at: string; questions: { question_text: string } | null }[]>();
+
   return (
     <ReviewShell>
       <main style={{ maxWidth: "820px", margin: "0 auto", padding: "56px 24px 90px", fontSize: "16px", lineHeight: 1.6 }}>
@@ -103,6 +111,22 @@ export default async function ReviewPage() {
             </div>
           ))}
         </div>
+
+        {(reports ?? []).length > 0 && (
+          <section style={{ marginBottom: "32px" }}>
+            <h2 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 12px" }}>Gemeldete Fehler ({reports!.length})</h2>
+            {reports!.map((r) => (
+              <div key={r.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "16px 18px", marginBottom: "10px" }}>
+                <div style={{ fontWeight: 600 }}>{r.questions?.question_text}</div>
+                <p style={{ margin: "6px 0 10px", color: "var(--muted)" }}>{r.message}</p>
+                <form action={resolveReport}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <button type="submit" className="pk-review-btn-ghost" style={{ cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: "14px", padding: "7px 14px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "1px solid var(--border)" }}>Erledigt</button>
+                </form>
+              </div>
+            ))}
+          </section>
+        )}
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "32px" }}>
           <span style={{ ...heading, fontWeight: 600, fontSize: "14px", padding: "6px 12px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>

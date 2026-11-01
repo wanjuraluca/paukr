@@ -13,6 +13,7 @@ import {
   finishBlitzRun,
   type RecordAttemptResult,
 } from "./actions";
+import ReportQuestion from "./ReportQuestion";
 import { FREE_TRY_LIMIT, PROBE_SIM_QUESTIONS, PROBE_SIM_SECONDS } from "@/lib/limits";
 import { gradeExam, PASS_THRESHOLD, type GradeResult } from "@/lib/grading";
 import {
@@ -39,6 +40,7 @@ const SESSION_SIZE = 10;
 // Our exam-simulation format (Teil 1 style: written, timed, 100-point scale).
 // Not a byte-for-byte copy of the real exam's time limit.
 const SIM_TIME_LIMIT_SECONDS = 60 * 60;
+const SIM_QUESTIONS = 60;
 // The simulation stays locked until the user has mastered this share of the
 // question pool (a Fahrschul-app style unlock gate).
 const SIM_UNLOCK_PCT = 80;
@@ -126,7 +128,7 @@ function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] 
       .sort((a, b) => dueTime(a) - dueTime(b));
   }
   if (mode === "sim") {
-    return shuffleArr(pool);
+    return shuffleArr(pool).slice(0, SIM_QUESTIONS);
   }
   const now = Date.now();
   const due = pool
@@ -922,6 +924,13 @@ export default function AppClient({
                   >
                     {isPro ? "Abo verwalten" : "Auf Pro upgraden"}
                   </button>
+                  <button
+                    onClick={() => router.push("/konto")}
+                    className="pk-menu-item"
+                    style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none", transition: "background .18s, transform .12s" }}
+                  >
+                    Konto
+                  </button>
                   {isPro && (
                     <button
                       onClick={() => router.push("/widerruf")}
@@ -1098,7 +1107,7 @@ export default function AppClient({
               <div style={{ ...heading, fontWeight: 600, fontSize: "22px", marginBottom: "6px" }}>Prüfungssimulation</div>
               <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>
                 {simUnlocked
-                  ? "Mit Zeitlimit, ohne Hilfen und mit Auswertung am Ende."
+                  ? `${SIM_QUESTIONS} Fragen in ${SIM_TIME_LIMIT_SECONDS / 60} Minuten, ohne Hilfen und mit Auswertung am Ende.`
                   : `Freigeschaltet ab ${SIM_UNLOCK_PCT}% richtig beantworteter Fragen.`}
               </div>
             </button>
@@ -1347,6 +1356,7 @@ export default function AppClient({
                     <div>
                       <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "3px", color: "var(--text)" }}>{verdictLabel}</div>
                       {q.expl && <div style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.5 }}>{q.expl}</div>}
+                      <ReportQuestion key={q.id} questionId={q.id} />
                     </div>
                   </div>
                 )}
