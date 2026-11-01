@@ -839,6 +839,7 @@ export default function AppClient({
           }}
         >
           <div
+            className="pk-app-header"
             style={{
               maxWidth: "1160px",
               margin: "0 auto",
@@ -880,7 +881,7 @@ export default function AppClient({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 6px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
               <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>{streak}</span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
+              <span className="pk-streak-label" style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
             </div>
             <button
               onClick={toggleTheme}
@@ -965,7 +966,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 1: DASHBOARD ===== */}
       {screen === "dashboard" && (
-        <main style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
             <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück{firstName ? `, ${firstName}` : ""}</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(34px,4.4vw,52px)", letterSpacing: "-.03em", margin: "10px 0 12px", lineHeight: 1.05 }}>Wähle deine Prüfung</h1>
@@ -1016,13 +1017,13 @@ export default function AppClient({
 
       {/* ===== SCREEN 2: EXAM DETAIL ===== */}
       {screen === "detail" && (
-        <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Prüfungsvorbereitung</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>{examName}</h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder unter echten Bedingungen simulieren."}</p>
           </div>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
+          <div className="pk-app-stats" style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
               <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: `conic-gradient(var(--accent) 0% ${masteredPct}%, var(--bg-alt) ${masteredPct}% 100%)` }} />
               <div style={{ position: "absolute", inset: "10px", borderRadius: "50%", background: "var(--surface)", display: "grid", placeItems: "center" }}>
@@ -1048,7 +1049,7 @@ export default function AppClient({
           {wrongCount > 0 && (
             <button
               onClick={startWrongPractice}
-              className="pk-mode-secondary"
+              className="pk-mode-secondary pk-row-card"
               style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .08s both", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--err) 8%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--err) 35%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "26px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             >
               <span style={{ width: "44px", height: "44px", borderRadius: "13px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -1073,7 +1074,7 @@ export default function AppClient({
                 : `Keine kostenlosen Versuche mehr für diese Prüfung`}
             </p>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
+          <div className="pk-app-modes" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
             <button
               onClick={startPractice}
               className="pk-mode-primary"
@@ -1118,7 +1119,7 @@ export default function AppClient({
           <button
             onClick={() => void startBlitz()}
             disabled={questions.length === 0}
-            className="pk-blitz-card"
+            className="pk-blitz-card pk-row-card"
             style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", width: "100%", textAlign: "left", cursor: questions.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--accent) 9%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--accent) 38%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "40px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             onAnimationEnd={(e) => { e.currentTarget.style.animation = "none"; }}
           >
@@ -1223,7 +1224,7 @@ export default function AppClient({
             <div style={{ height: "4px", background: "var(--bg-alt)" }}>
               <div style={{ width: practicePct, height: "100%", background: "var(--accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
             </div>
-            <div style={{ maxWidth: "820px", margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)" }}>{mode === "sim" ? "Prüfungssimulation" : (q?.topic ?? "")}</span>
               {mode === "sim" && (
                 <span style={{ ...heading, fontSize: "14px", fontWeight: 700, color: secondsLeft <= 60 ? "var(--err-strong)" : "var(--accent-strong)", marginLeft: "auto" }}>
@@ -1243,7 +1244,7 @@ export default function AppClient({
               </button>
             </div>
           </div>
-          <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "60px 28px 40px", display: "flex", flexDirection: "column" }}>
+          <main className="pk-app-main" style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "60px 28px 40px", display: "flex", flexDirection: "column" }}>
             {q ? (
               <>
                 <div key={q.id} style={{ animation: "pk-revUp .45s cubic-bezier(.16,1,.3,1) both" }}>
@@ -1424,7 +1425,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 4: RESULT ===== */}
       {screen === "result" && (
-        <main style={{ position: "relative", maxWidth: "760px", margin: "0 auto", padding: "56px 28px 90px", overflow: "hidden" }}>
+        <main className="pk-app-main" style={{ position: "relative", maxWidth: "760px", margin: "0 auto", padding: "56px 28px 90px", overflow: "hidden" }}>
           {passed && confetti.map((c) => <span key={c.key} style={c.style} />)}
           <div style={{ position: "relative", zIndex: 1, textAlign: "center", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both" }}>
             <div style={{ position: "relative", width: "150px", height: "150px", margin: "0 auto 26px" }}>
@@ -1512,7 +1513,7 @@ export default function AppClient({
       {screen === "blitz" && (
         <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: "128px" }}>
                 <span
                   style={{ ...heading, fontWeight: 700, fontSize: "34px", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: blitzDanger ? "var(--err-strong)" : "var(--accent-strong)", transition: "color .2s" }}
@@ -1551,7 +1552,7 @@ export default function AppClient({
               <div style={{ width: `${Math.min(100, (blitzSecondsLeft / BLITZ_START_SECONDS) * 100)}%`, height: "100%", background: blitzDanger ? "var(--err)" : "var(--accent)", transition: "width .12s linear, background .2s" }} />
             </div>
           </div>
-          <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "34px 28px 40px", display: "flex", flexDirection: "column" }}>
+          <main className="pk-app-main" style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "34px 28px 40px", display: "flex", flexDirection: "column" }}>
             {/* Boons in hand. Consumables show their charges, the two usable
                 ones are buttons. */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px", minHeight: "40px" }}>
@@ -1666,7 +1667,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 7: BOON PICK (clock is paused here) ===== */}
       {screen === "boon" && (
-        <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
+        <main className="pk-app-main" style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
           <div style={{ width: "100%", maxWidth: "900px" }}>
             <div style={{ textAlign: "center", marginBottom: "34px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Tiefe {blitzDepth} erreicht</span>
@@ -1675,7 +1676,7 @@ export default function AppClient({
                 Die Uhr steht still, solange du wählst. Es bleiben {formatBlitzClock(blitzMsLeft)} Sekunden.
               </p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, boonOffer.length)},1fr)`, gap: "16px" }}>
+            <div className="pk-boon-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, boonOffer.length)},1fr)`, gap: "16px" }}>
               {boonOffer.map((b, i) => (
                 <button
                   key={b.id}
@@ -1700,8 +1701,8 @@ export default function AppClient({
 
       {/* ===== SCREEN 8: BLITZ SUMMARY ===== */}
       {screen === "blitzover" && (
-        <main style={{ maxWidth: "620px", margin: "0 auto", padding: "70px 28px 90px" }}>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "620px", margin: "0 auto", padding: "70px 28px 90px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }} className="pk-app-card">
             <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9.5" stroke="var(--err-strong)" strokeWidth="2" />
@@ -1748,8 +1749,8 @@ export default function AppClient({
 
       {/* ===== SCREEN 5: PAYWALL ===== */}
       {screen === "paywall" && (
-        <main style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }} className="pk-app-card">
             <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                 <rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--accent-strong)" strokeWidth="2" />

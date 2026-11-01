@@ -500,3 +500,59 @@ body {
     border-left: none !important;
   }
 }
+
+/* ===== App (/app) on phones =====
+   The app screens are styled inline for desktop widths, so these rules use
+   !important to override them below 640px. */
+@media (max-width: 640px) {
+  .pk-app-header {
+    padding: 12px 16px !important;
+    gap: 10px !important;
+  }
+  .pk-streak-label {
+    display: none;
+  }
+  .pk-app-bar {
+    padding: 12px 16px !important;
+    gap: 12px !important;
+  }
+  .pk-app-main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 32px !important;
+  }
+  .pk-app-card {
+    padding: 32px 20px !important;
+  }
+  /* Ring on the left, XP and streak stacked on the right. */
+  .pk-app-stats {
+    grid-template-columns: auto 1fr !important;
+    padding: 20px !important;
+    column-gap: 20px !important;
+  }
+  .pk-app-stats > :first-child {
+    grid-row: span 2;
+  }
+  .pk-app-stats > :not(:first-child) {
+    padding-left: 18px !important;
+  }
+  .pk-app-modes,
+  .pk-boon-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pk-app-modes > button {
+    padding: 22px !important;
+  }
+  /* Icon + text on the first line, the badge or best score moves below. */
+  .pk-row-card {
+    flex-wrap: wrap;
+    padding: 18px !important;
+    gap: 14px !important;
+  }
+  .pk-row-card > span:nth-child(2) {
+    flex: 1 1 calc(100% - 60px) !important;
+  }
+  .pk-row-card > span:last-child {
+    margin-left: 58px;
+  }
+}
