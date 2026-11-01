@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
@@ -22,7 +23,7 @@ function friendlyError(message: unknown): string {
 export default function AuthClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/app";
+  const next = safeNextPath(params.get("next"));
   const supabase = createClient();
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
