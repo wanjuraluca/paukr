@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { cancelSubscription, type CancelResult } from "./actions";
+import RequestForm from "../widerruf/RequestForm";
 
 export type CancelView =
   | { kind: "login" }
@@ -50,9 +51,12 @@ export default function KuendigenClient({ view }: { view: CancelView }) {
       <>
         <h1 style={h1}>Verträge hier kündigen</h1>
         <p style={{ margin: "0 0 24px" }}>
-          Melde dich mit dem Konto an, über das du paukr Pro abgeschlossen hast. Danach kannst du dein Abo hier direkt kündigen.
+          Du kannst ohne Anmeldung kündigen. Trag dafür deine Angaben ein und nimm die E-Mail-Adresse deines Kontos, damit wir
+          den Vertrag zuordnen können.
         </p>
-        <a href="/auth?next=/kuendigen" className="pk-btn-accent" style={button}>Anmelden und kündigen</a>
+        <RequestForm kind="cancellation" />
+        <p style={{ margin: "0 0 16px" }}>Schneller geht es mit Anmeldung, dann wird die Kündigung sofort eingetragen:</p>
+        <a href="/auth?next=/kuendigen" style={{ ...button, background: "transparent", color: "var(--text)", border: "1px solid var(--border)" }}>Anmelden und kündigen</a>
         {mailHint}
       </>
     );
@@ -129,6 +133,9 @@ export default function KuendigenClient({ view }: { view: CancelView }) {
       {result && !result.ok && (
         <p style={{ color: "var(--err-strong)", margin: "14px 0 0" }}>{result.error}</p>
       )}
+      <h2 style={{ ...heading, fontWeight: 600, fontSize: "18px", margin: "36px 0 12px" }}>Außerordentlich kündigen</h2>
+      <p style={{ margin: "0 0 16px" }}>Wenn du aus wichtigem Grund sofort kündigen möchtest, nutze dieses Formular.</p>
+      <RequestForm kind="cancellation" />
       {mailHint}
     </>
   );

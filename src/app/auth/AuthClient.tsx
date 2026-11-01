@@ -290,6 +290,11 @@ export default function AuthClient() {
                 >
                   {busy ? "Moment…" : isLogin ? "Anmelden" : "Konto erstellen"}
                 </button>
+                {!isLogin && (
+                  <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "var(--muted)", margin: "12px 0 0", textAlign: "center" }}>
+                    Mit dem Erstellen des Kontos gelten unsere <a href="/agb" style={{ color: "var(--accent-strong)" }}>Nutzungsbedingungen</a>. Infos zu deinen Daten stehen in der <a href="/datenschutz" style={{ color: "var(--accent-strong)" }}>Datenschutzerklärung</a>.
+                  </p>
+                )}
               </form>
             </>
           )}

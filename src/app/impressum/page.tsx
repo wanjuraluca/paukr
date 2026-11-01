@@ -35,9 +35,9 @@ export default function ImpressumPage() {
 
       <h2 style={{ ...heading, fontWeight: 600, fontSize: "18px", margin: "0 0 10px" }}>Haftungshinweis</h2>
       <p style={{ margin: "0 0 24px" }}>
-        paukr ist ein privat betriebenes Lernangebot und steht in keiner Verbindung zu einer Industrie- und Handelskammer
-        oder einer anderen Prüfungsinstitution. Die angebotenen Übungsfragen und Simulationen sind eigenständig erstellt
-        und stellen kein offizielles IHK-Material dar.
+        paukr ist ein unabhängiges Übungsangebot und steht in keiner Verbindung zu den Industrie- und Handelskammern, der
+        DIHK, der AkA, der ZPA oder einer anderen Prüfungsstelle. Die Übungsfragen und Simulationen sind eigenständig
+        erstellt und keine Original-Prüfungsaufgaben.
       </p>
 
       <h2 style={{ ...heading, fontWeight: 600, fontSize: "18px", margin: "0 0 10px" }}>Streitschlichtung</h2>

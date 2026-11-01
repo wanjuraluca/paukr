@@ -917,6 +917,15 @@ export default function AppClient({
                   >
                     {isPro ? "Abo verwalten" : "Auf Pro upgraden"}
                   </button>
+                  {isPro && (
+                    <button
+                      onClick={() => router.push("/widerruf")}
+                      className="pk-menu-item"
+                      style={{ width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "14px", padding: "9px 12px", borderRadius: "10px", background: "transparent", color: "var(--text)", border: "none", transition: "background .18s, transform .12s" }}
+                    >
+                      Vertrag widerrufen
+                    </button>
+                  )}
                   {isAdmin && (
                     <button
                       onClick={() => router.push("/review")}
@@ -976,7 +985,7 @@ export default function AppClient({
                     <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".03em", color: "var(--accent-strong)", background: "color-mix(in oklch, var(--accent) 13%, var(--bg))", padding: "5px 11px", borderRadius: "100px" }}>AKTIV</span>
                   </div>
                   <h3 style={{ ...heading, fontWeight: 600, fontSize: "21px", margin: "0 0 6px", letterSpacing: "-.01em", color: "var(--text)" }}>{e.name}</h3>
-                  <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>{e.description || "IHK-Prüfung."}</p>
+                  <p style={{ fontSize: "15px", color: "var(--muted)", margin: "0 0 22px", lineHeight: 1.5 }}>{e.description || "Übungsfragen zur Prüfungsvorbereitung."}</p>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                     <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Fragen verfügbar</span>
                     <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent-strong)" }}>{e.questions.length}</span>
@@ -995,7 +1004,7 @@ export default function AppClient({
       {screen === "detail" && (
         <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>IHK-Prüfung</span>
+            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Prüfungsvorbereitung</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>{examName}</h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder unter echten Bedingungen simulieren."}</p>
           </div>
@@ -1141,14 +1150,14 @@ export default function AppClient({
                 </svg>
               </span>
               <div>
-                <div style={{ ...heading, fontWeight: 700, fontSize: "18px", marginBottom: "3px", color: "var(--accent-strong)" }}>Du bist prüfungsbereit!</div>
-                <div style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>{READINESS_STREAK} Simulationen in Folge bestanden. Bleib dran, damit es so bleibt.</div>
+                <div style={{ ...heading, fontWeight: 700, fontSize: "18px", marginBottom: "3px", color: "var(--accent-strong)" }}>Simulationsziel erreicht!</div>
+                <div style={{ fontSize: "14.5px", color: "var(--muted)", lineHeight: 1.5 }}>{READINESS_STREAK} Simulationen in Folge bestanden. Das ist ein Übungswert und keine Garantie für die echte Prüfung.</div>
               </div>
             </div>
           ) : (
             <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px", padding: "22px 24px", marginBottom: "40px" }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "12px", gap: "12px" }}>
-                <span style={{ fontSize: "15px", fontWeight: 600 }}>Weg zur Prüfungsbereitschaft</span>
+                <span style={{ fontSize: "15px", fontWeight: 600 }}>Dein Simulationsziel</span>
                 <span style={{ ...heading, fontSize: "15px", fontWeight: 700, color: "var(--accent-strong)" }}>{Math.min(passStreak, READINESS_STREAK)} / {READINESS_STREAK}</span>
               </div>
               <div style={{ display: "flex", gap: "6px" }}>
@@ -1157,7 +1166,7 @@ export default function AppClient({
                 ))}
               </div>
               <p style={{ fontSize: "14px", color: "var(--muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
-                Bestehe die Simulation {READINESS_STREAK}-mal in Folge, dann giltst du als prüfungsbereit. Ein Durchfaller setzt den Zähler zurück.
+                Bestehe die Simulation {READINESS_STREAK}-mal in Folge, um dein Ziel zu erreichen. Ein Durchfaller setzt den Zähler zurück. Das ist ein Übungswert und keine Garantie für die echte Prüfung.
               </p>
             </div>
           )}
@@ -1406,14 +1415,14 @@ export default function AppClient({
             <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", background: passed ? "color-mix(in oklch, var(--accent) 14%, var(--bg))" : "color-mix(in oklch, var(--err) 14%, var(--bg))", color: passed ? "var(--accent-strong)" : "var(--err-strong)", fontSize: "14px", fontWeight: 700, marginBottom: "16px" }}>
               {mode === "sim" && gradeResult
                 ? `${passed ? "Bestanden" : "Nicht bestanden"} · Note ${gradeResult.grade} (${gradeResult.gradeLabel})`
-                : passed ? "Bestanden 🎯" : "Nicht bestanden"}
+                : passed ? "Bestanden" : "Nicht bestanden"}
             </span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,44px)", letterSpacing: "-.03em", margin: "0 0 10px", lineHeight: 1.05 }}>
-              {passed ? "Stark, du hast bestanden!" : "Fast geschafft, dranbleiben!"}
+              {passed ? mode === "sim" ? "Stark, Simulation bestanden!" : "Stark, gut geübt!" : "Fast geschafft, dranbleiben!"}
             </h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: "0 auto 40px", maxWidth: "460px" }}>
               {mode === "sim"
-                ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Bestehensgrenze: ${PASS_THRESHOLD}).`
+                ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Grenze in der Simulation: ${PASS_THRESHOLD}). Übungswert, keine amtliche Bewertung.`
                 : `${correctCount} von ${answeredTotal} Fragen richtig. ${passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
             </p>
             {mode === "sim" && (
@@ -1423,15 +1432,15 @@ export default function AppClient({
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    Prüfungsbereit! {READINESS_STREAK} in Folge bestanden
+                    Simulationsziel erreicht: {READINESS_STREAK} in Folge bestanden
                   </span>
                 ) : passed ? (
                   <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>
-                    {passStreak} von {READINESS_STREAK} in Folge bestanden, noch {READINESS_STREAK - passStreak} bis prüfungsbereit.
+                    {passStreak} von {READINESS_STREAK} in Folge bestanden, noch {READINESS_STREAK - passStreak} bis zum Ziel.
                   </span>
                 ) : (
                   <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--err-strong)" }}>
-                    Serie zurückgesetzt. Für die Prüfungsbereitschaft {READINESS_STREAK} in Folge bestehen.
+                    Serie zurückgesetzt. Für dein Ziel {READINESS_STREAK} in Folge bestehen.
                   </span>
                 )}
               </div>
@@ -1733,15 +1742,13 @@ export default function AppClient({
             <div style={{ textAlign: "left", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 26px", marginBottom: "26px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "18px" }}>
                 <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)" }}>9,99 €</span>
-                <span style={{ color: "var(--muted)", fontSize: "14px" }}>/ Monat, jederzeit kündbar</span>
+                <span style={{ color: "var(--muted)", fontSize: "14px" }}>/ Monat (Endpreis), monatlich kündbar</span>
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
                 {[
-                  "Kompletter Fragenpool",
+                  "Unbegrenzte Lernsitzungen",
                   "Unbegrenzte Simulationen",
-                  "Adaptives Üben & Schwächen-Analyse",
-                  "Detaillierte Auswertung",
-                  "Werbefrei",
+                  "Unbegrenzte Blitz-Läufe",
                 ].map((feature) => (
                   <li key={feature} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14.5px" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>

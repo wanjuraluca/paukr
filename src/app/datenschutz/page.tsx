@@ -3,6 +3,8 @@ import LegalShell from "../legal/LegalShell";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 const h2: CSSProperties = { ...heading, fontWeight: 600, fontSize: "18px", margin: "36px 0 10px" };
+const strong: CSSProperties = { color: "var(--text)" };
+const mail = <a href="mailto:info@paukr.app" style={{ color: "var(--accent-strong)" }}>info@paukr.app</a>;
 
 export const metadata = { title: "Datenschutz · paukr" };
 
@@ -12,78 +14,96 @@ export default function DatenschutzPage() {
       <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em", margin: "0 0 8px" }}>
         Datenschutzerklärung
       </h1>
-      <p style={{ margin: "0 0 24px", color: "var(--muted)", fontSize: "14px" }}>Stand: Juli 2026</p>
+      <p style={{ margin: "0 0 24px", color: "var(--muted)", fontSize: "14px" }}>Stand: November 2026</p>
 
       <h2 style={{ ...h2, marginTop: 0 }}>1. Verantwortlicher</h2>
       <p>
         Luca Wanjura, Uranusweg 18, 45770 Marl, Deutschland
         <br />
-        E-Mail: <a href="mailto:info@paukr.app" style={{ color: "var(--accent-strong)" }}>info@paukr.app</a>
+        E-Mail: {mail}
       </p>
 
       <h2 style={h2}>2. Welche Daten wir verarbeiten und warum</h2>
       <p>
-        <strong style={{ color: "var(--text)" }}>Registrierung und Login.</strong> Wenn du ein Konto erstellst, speichern
-        wir deine E-Mail-Adresse, einen von dir gewählten Anzeigenamen und (bei E-Mail/Passwort-Anmeldung) ein Passwort in
-        gehashter Form. Meldest du dich mit Google an, erhalten wir von Google deine E-Mail-Adresse und deinen Namen.
-        Rechtsgrundlage ist die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO).
+        <strong style={strong}>Konto und Login.</strong> Wir speichern deine E-Mail-Adresse, deinen Anzeigenamen und bei
+        Anmeldung mit Passwort dieses in gehashter Form. Meldest du dich mit Google an, erhalten wir von Google deine
+        E-Mail-Adresse und deinen Namen. Rechtsgrundlage ist die Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO).
       </p>
       <p>
-        <strong style={{ color: "var(--text)" }}>Lernfortschritt.</strong> Wir speichern, welche Fragen du wann wie
-        beantwortet hast, deinen XP-Stand, deine Lernserie sowie Ergebnisse von Prüfungssimulationen, um dir
-        Fortschrittsanzeigen und die Wiederholungslogik anzeigen zu können. Rechtsgrundlage ist ebenfalls die
+        <strong style={strong}>Lernfortschritt.</strong> Wir speichern, welche Fragen du wann und wie beantwortet hast, wie
+        lange du gebraucht hast, deine XP, deine Serie sowie Ergebnisse von Simulationen und Blitz-Läufen. Daraus berechnen
+        wir, welche Fragen du wiederholen solltest. Das hat keine rechtliche Wirkung für dich. Rechtsgrundlage ist die
         Vertragserfüllung.
       </p>
       <p>
-        <strong style={{ color: "var(--text)" }}>Technische Daten.</strong> Beim Aufruf der Seite verarbeitet unser
-        Hosting-Anbieter (Vercel) technisch notwendige Verbindungsdaten (u. a. IP-Adresse, Zeitpunkt des Zugriffs), um die
-        Auslieferung der Seite zu ermöglichen. Rechtsgrundlage ist unser berechtigtes Interesse an einem funktionierenden,
-        sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
+        <strong style={strong}>Zahlungen.</strong> Pro wird über Stripe abgewickelt. Zahlungsdaten gibst du direkt bei
+        Stripe ein, wir sehen sie nicht. Wir erhalten und speichern eine Kunden- und Abo-Kennung, den Abo-Status, die
+        Laufzeit sowie deine Erklärung zum vorzeitigen Leistungsbeginn. Rechtsgrundlagen sind die Vertragserfüllung und
+        gesetzliche Pflichten (Art. 6 Abs. 1 lit. b und c DSGVO).
       </p>
       <p>
-        <strong style={{ color: "var(--text)" }}>Zahlungen.</strong> paukr bietet aktuell keine kostenpflichtigen
-        Funktionen an. Sollte künftig ein kostenpflichtiger Plan eingeführt werden, aktualisieren wir diese Erklärung vor
-        dessen Start entsprechend.
+        <strong style={strong}>Widerruf und Kündigung.</strong> Nutzt du diese Formulare, verarbeiten wir Name, E-Mail,
+        Vertragsangaben, deine Angaben zur Kündigung sowie Datum und Uhrzeit des Eingangs. So bearbeiten und belegen wir
+        deine Erklärung und senden dir die Eingangsbestätigung (Art. 6 Abs. 1 lit. c DSGVO).
+      </p>
+      <p>
+        <strong style={strong}>E-Mails.</strong> Wir senden dir nur Mails, die zum Konto oder Vertrag gehören, zum Beispiel
+        Kontobestätigung, Passwort zurücksetzen, Vertragsbestätigung oder Eingangsbestätigungen. Werbung versenden wir nicht.
+      </p>
+      <p>
+        <strong style={strong}>Technische Daten.</strong> Beim Aufruf der Seite verarbeitet unser Hosting-Anbieter
+        Verbindungsdaten wie IP-Adresse und Zeitpunkt, um die Seite auszuliefern und abzusichern. Rechtsgrundlage ist unser
+        berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
       </p>
 
       <h2 style={h2}>3. Eingesetzte Dienstleister</h2>
-      <p>Wir setzen folgende Auftragsverarbeiter bzw. Drittanbieter ein:</p>
       <ul style={{ paddingLeft: "22px", margin: "0 0 16px" }}>
-        <li><strong style={{ color: "var(--text)" }}>Supabase</strong> — Datenbank, Nutzerkonten und Authentifizierung.</li>
-        <li><strong style={{ color: "var(--text)" }}>Vercel Inc.</strong> — Hosting der Webanwendung.</li>
-        <li><strong style={{ color: "var(--text)" }}>Resend</strong> — Versand von Transaktions-E-Mails (Kontobestätigung, Passwort-Zurücksetzen).</li>
-        <li><strong style={{ color: "var(--text)" }}>Google Ireland Limited</strong> — nur wenn du dich mit Google anmeldest, zum Zweck der Authentifizierung.</li>
+        <li><strong style={strong}>Supabase, Inc. (USA):</strong> Datenbank, Nutzerkonten und Anmeldung.</li>
+        <li><strong style={strong}>Vercel Inc. (USA):</strong> Hosting der Website.</li>
+        <li><strong style={strong}>Resend (USA):</strong> Versand der oben genannten E-Mails.</li>
+        <li><strong style={strong}>Stripe Payments Europe, Ltd. (Irland):</strong> Zahlungsabwicklung. Stripe verarbeitet Zahlungsdaten teilweise in eigener Verantwortung, etwa zur Betrugsabwehr.</li>
+        <li><strong style={strong}>Google Ireland Limited (Irland):</strong> nur wenn du dich mit Google anmeldest.</li>
       </ul>
       <p>
-        Einzelne dieser Anbieter können Daten auch außerhalb der EU/des EWR, insbesondere in den USA, verarbeiten. Soweit
-        dies der Fall ist, stützen wir uns auf die EU-Standardvertragsklauseln bzw. vergleichbare, von der jeweiligen
-        Rechtsgrundlage anerkannte Garantien.
+        Dabei können Daten in die USA übermittelt werden. Wir stützen uns dafür auf den Angemessenheitsbeschluss zum EU-US
+        Data Privacy Framework, soweit der Anbieter zertifiziert ist, und sonst auf EU-Standardvertragsklauseln. Eine Kopie
+        der Garantien bekommst du auf Anfrage.
       </p>
 
-      <h2 style={h2}>4. Cookies</h2>
+      <h2 style={h2}>4. Cookies und Speicherung auf deinem Gerät</h2>
       <p>
-        Wir setzen ausschließlich technisch notwendige Cookies zur Aufrechterhaltung deiner Anmeldesitzung ein. Es werden
-        keine Analyse- oder Marketing-Cookies verwendet, für die eine Einwilligung erforderlich wäre.
+        Wir setzen nur technisch notwendige Cookies ein, die dich nach dem Login angemeldet halten. Rechtsgrundlage ist
+        § 25 Abs. 2 Nr. 2 TDDDG, eine Einwilligung ist dafür nicht nötig. Es gibt kein Tracking, keine Analyse-Tools und
+        keine Werbe-Cookies, deshalb auch kein Cookie-Banner. Schriftarten liefern wir von unserem eigenen Server aus. Auf
+        den Seiten von Stripe gelten beim Bezahlen die Regeln von Stripe.
       </p>
 
       <h2 style={h2}>5. Speicherdauer</h2>
       <p>
-        Wir speichern deine Kontodaten, solange dein Konto besteht. Auf Wunsch löschen wir dein Konto samt aller
-        zugehörigen Lerndaten; schreib uns dafür einfach an <a href="mailto:info@paukr.app" style={{ color: "var(--accent-strong)" }}>info@paukr.app</a>.
+        Kontodaten und Lernfortschritt speichern wir, solange dein Konto besteht. Löschen kannst du das Konto mit einer Mail
+        an {mail}. Rechnungs- und Buchungsbelege müssen wir nach den gesetzlichen Fristen aufbewahren, in der Regel bis zu 8
+        oder 10 Jahre. Erklärungen zu Widerruf und Kündigung bewahren wir bis zum Ablauf der Verjährungsfristen auf.
       </p>
 
-      <h2 style={h2}>6. Deine Rechte</h2>
+      <h2 style={h2}>6. Pflicht zur Angabe</h2>
       <p>
-        Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der
-        Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) sowie Widerspruch gegen die Verarbeitung (Art. 21). Wende
-        dich dafür an <a href="mailto:info@paukr.app" style={{ color: "var(--accent-strong)" }}>info@paukr.app</a>. Außerdem
-        steht dir ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu.
+        Ohne E-Mail-Adresse können wir kein Konto anlegen, und ohne Zahlungsdaten kein Pro-Abo abschließen. Darüber hinaus bist
+        du nicht verpflichtet, Daten anzugeben.
       </p>
 
-      <h2 style={h2}>7. Minderjährige Nutzer</h2>
+      <h2 style={h2}>7. Deine Rechte</h2>
       <p>
-        paukr richtet sich auch an Auszubildende, von denen manche noch nicht volljährig sind. Nutzer unter 16 Jahren
-        benötigen die Einwilligung eines Erziehungsberechtigten zur Kontoerstellung.
+        Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18)
+        und Datenübertragbarkeit (Art. 20). Verarbeitungen auf Grundlage berechtigter Interessen kannst du aus Gründen, die
+        sich aus deiner besonderen Situation ergeben, widersprechen (Art. 21). Schreib dafür an {mail}. Außerdem kannst du
+        dich bei einer Aufsichtsbehörde beschweren, zuständig für uns ist die Landesbeauftragte für Datenschutz und
+        Informationsfreiheit Nordrhein-Westfalen.
+      </p>
+
+      <h2 style={h2}>8. Minderjährige</h2>
+      <p>
+        paukr richtet sich auch an Auszubildende, die noch nicht volljährig sind. Wer unter 16 Jahre alt ist, braucht für
+        das Konto die Zustimmung der Erziehungsberechtigten.
       </p>
     </LegalShell>
   );

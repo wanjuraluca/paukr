@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isProStatus } from "@/lib/subscription";
+import { contractConfirmationText } from "@/lib/legal-texts";
+import { formatBerlin, sendMail } from "@/lib/mail";
 import type Stripe from "stripe";
 
 // Stripe webhook. Verifies the signature, marks the profile as pro after
@@ -37,6 +39,17 @@ export async function POST(request: Request) {
           stripe_subscription_id: subscriptionId,
         })
         .eq("id", userId);
+    }
+    // Contract confirmation on a durable medium, including the withdrawal terms.
+    const email = session.customer_details?.email ?? session.customer_email;
+    if (email) {
+      const consentAt = session.metadata?.early_start_consent_at ?? "";
+      const stamp = consentAt ? formatBerlin(new Date(consentAt).getTime()) : null;
+      await sendMail(
+        email,
+        "Deine Vertragsbestätigung für paukr Pro",
+        contractConfirmationText(stamp ? `${stamp.date}, ${stamp.time} Uhr` : "beim Kauf"),
+      );
     }
   }
 

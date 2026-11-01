@@ -382,7 +382,7 @@ export default function Home() {
               <path d="M8 11l2.5 2.5L16 8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <span>
-              <strong style={{ color: "var(--text)" }}>{QUESTION_COUNT_LABEL}</strong> Fragen im Stil der IHK-Prüfung, original geschrieben
+              <strong style={{ color: "var(--text)" }}>{QUESTION_COUNT_LABEL}</strong> eigene Übungsfragen zur Vorbereitung auf IHK-Abschlussprüfungen
             </span>
           </div>
         </div>
@@ -512,8 +512,8 @@ export default function Home() {
                   <path d="M8 9.5h8M8 13h8M8 16.5h4.5" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               ),
-              title: "Prüfungsgerechte Fragen",
-              body: `${QUESTION_COUNT_LABEL} original geschriebene Fragen im Stil deiner Prüfung, sortiert nach Themen und Schwierigkeit.`,
+              title: "Eigene Übungsfragen",
+              body: `${QUESTION_COUNT_LABEL} selbst erstellte Übungsfragen zu den Themen deiner Prüfung, nach Themen sortiert. Keine Original-Prüfungsaufgaben.`,
             },
             {
               delay: ".08s",
@@ -587,7 +587,7 @@ export default function Home() {
             {[
               { delay: "0s", num: "01", title: "Prüfung wählen", body: "Such dir deine Prüfung aus dem Katalog. Der Rest wird passgenau für dich vorbereitet." },
               { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich durch Fragen und volle Simulationen, in deinem Tempo, mit sofortigem Feedback." },
-              { delay: ".24s", num: "03", title: "Bestehen", body: "Geh mit einem sicheren Gefühl in die echte Prüfung. Du weißt genau, was dich erwartet." },
+              { delay: ".24s", num: "03", title: "Vorbereitet reingehen", body: "Du siehst, welche Themen schon sitzen und wo du noch üben solltest. Bestehen musst du die Prüfung am Ende selbst." },
             ].map((s) => (
               <div key={s.num} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${s.delay} both` }}>
                 <div style={{ ...heading, fontWeight: 700, fontSize: "15px", color: "var(--accent)", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -606,7 +606,7 @@ export default function Home() {
       <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "88px 28px" }}>
         <div className="pk-stats-grid" style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "20px", textAlign: "center" }}>
           {[
-            { value: QUESTION_COUNT_LABEL, label: "Original-Fragen im Pool", border: false },
+            { value: QUESTION_COUNT_LABEL, label: "Übungsfragen im Pool", border: false },
             { value: "4", label: "Themengebiete", border: true },
             { value: "0 €", label: "Für den Einstieg", border: true },
           ].map((stat) => (
@@ -626,13 +626,13 @@ export default function Home() {
             <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 14px", lineHeight: 1.1 }}>
               Starte kostenlos. Upgrade, wenn&apos;s ernst wird.
             </h2>
-            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0 }}>Keine Kreditkarte nötig. Jederzeit kündbar.</p>
+            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0 }}>Free ohne Kreditkarte. Pro verlängert sich monatlich und ist jederzeit zum Monatsende kündbar.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "22px", alignItems: "stretch" }}>
             {/* Free */}
             <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "22px", padding: "34px" }}>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Free</h3>
-              <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Zum Reinschnuppern &amp; für Basics.</p>
+              <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Zum Ausprobieren.</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "26px" }}>
                 <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>0 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat</span>
@@ -646,8 +646,8 @@ export default function Home() {
               </button>
               <div style={{ height: "1px", background: "var(--border)", margin: "26px 0" }} />
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "14px", fontSize: "15px" }}>
-                <CheckItem text="Basis-Fragenpool" filled={false} />
-                <CheckItem text="3 kostenlose Versuche pro Prüfung" filled={false} />
+                <CheckItem text="Alle Fragen und Themen" filled={false} />
+                <CheckItem text="3 kostenlose Lernsitzungen pro Prüfung" filled={false} />
                 <CheckItem text="XP & Fortschritts-Tracking" filled={false} />
               </ul>
             </div>
@@ -655,10 +655,10 @@ export default function Home() {
             <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .1s both", position: "relative", background: "var(--surface)", border: "1.5px solid var(--accent)", borderRadius: "22px", padding: "34px", boxShadow: "0 20px 50px color-mix(in oklch, var(--accent) 18%, transparent)" }}>
               <span style={{ position: "absolute", top: "-13px", left: "34px", padding: "5px 13px", borderRadius: "100px", background: "var(--accent)", color: "var(--on-accent)", fontSize: "12px", fontWeight: 700, letterSpacing: ".02em" }}>Beliebt</span>
               <h3 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>Pro</h3>
-              <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Für alle, die wirklich bestehen wollen.</p>
+              <p style={{ color: "var(--muted)", fontSize: "15px", margin: "0 0 22px" }}>Für alle, die ohne Limit üben wollen.</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "26px" }}>
                 <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>9,99 €</span>
-                <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat</span>
+                <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat (Endpreis)</span>
               </div>
               <button
                 onClick={goToUpgrade}
@@ -669,11 +669,9 @@ export default function Home() {
               </button>
               <div style={{ height: "1px", background: "var(--border)", margin: "26px 0" }} />
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "14px", fontSize: "15px" }}>
-                <CheckItem text="Kompletter Fragenpool" filled />
-                <CheckItem text="Unbegrenzte Simulationen" filled />
-                <CheckItem text="Adaptives Üben & Schwächen-Analyse" filled />
-                <CheckItem text="Detaillierte Auswertung" filled />
-                <CheckItem text="Werbefrei" filled />
+                <CheckItem text="Alle Fragen und Themen" filled />
+                <CheckItem text="Unbegrenzte Lernsitzungen und Simulationen" filled />
+                <CheckItem text="Unbegrenzte Blitz-Läufe" filled />
               </ul>
             </div>
           </div>
@@ -720,6 +718,7 @@ export default function Home() {
               { label: "Datenschutz", href: "/datenschutz" },
               { label: "Impressum", href: "/impressum" },
               { label: "Verträge hier kündigen", href: "/kuendigen" },
+              { label: "Vertrag widerrufen", href: "/widerruf" },
             ].map((l) => (
               <a key={l.label} href={l.href} className="pk-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
                 {l.label}
@@ -743,6 +742,8 @@ export default function Home() {
           </div>
         </div>
         <div style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
+          paukr ist ein unabhängiges Übungsangebot ohne Verbindung zu den Industrie- und Handelskammern, der DIHK, der AkA oder der ZPA. Alle Fragen sind eigene Übungsfragen, keine Original-Prüfungsaufgaben. Keine Bestehensgarantie.
+          <br />
           © 2026 {PRODUCT_NAME}. Alle Rechte vorbehalten.
         </div>
       </footer>

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Creates a subscription-mode Stripe Checkout session for the current user
 // and returns its URL. The browser is expected to redirect to that URL.
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,6 +14,12 @@ export async function POST() {
   if (!user) {
     return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
   }
+
+  const body = await request.json().catch(() => null);
+  if (body?.earlyStartConsent !== true) {
+    return NextResponse.json({ error: "Bitte bestätige zuerst den Leistungsbeginn." }, { status: 400 });
+  }
+  const consentAt = new Date().toISOString();
 
   const admin = createAdminClient();
 
@@ -56,7 +62,9 @@ export async function POST() {
     line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
     success_url: `${siteUrl}/app?upgraded=1`,
     cancel_url: `${siteUrl}/app`,
-    metadata: { supabase_user_id: user.id },
+    locale: "de",
+    metadata: { supabase_user_id: user.id, early_start_consent_at: consentAt },
+    subscription_data: { metadata: { early_start_consent_at: consentAt } },
   });
 
   return NextResponse.json({ url: session.url });

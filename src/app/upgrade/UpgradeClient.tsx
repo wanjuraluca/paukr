@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { EARLY_START_CONSENT } from "@/lib/legal-texts";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
@@ -16,20 +17,21 @@ function formatDate(ms: number) {
 }
 
 const freeFeatures = [
-  "Zugriff auf alle nicht-premium Themen",
-  "Karteikarten-Wiederholung (Spaced Repetition)",
+  "Alle Fragen und Themen",
+  "3 kostenlose Lernsitzungen pro Prüfung",
   "XP, Serie und Fortschritt",
 ];
 
 const proFeatures = [
-  "Alle Premium-Themen freigeschaltet",
-  "Vollständige Prüfungssimulation",
-  "Alle künftigen Themen inklusive",
+  "Alle Fragen und Themen",
+  "Unbegrenzte Lernsitzungen und Simulationen",
+  "Unbegrenzte Blitz-Läufe",
 ];
 
 export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelScheduled }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
 
   async function openPortal() {
     setLoading(true);
@@ -55,7 +57,11 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ earlyStartConsent: consent }),
+      });
       const data = await res.json();
       if (!res.ok || !data.url) {
         throw new Error(data.error ?? "Checkout konnte nicht gestartet werden");
@@ -85,10 +91,10 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
       <div style={{ maxWidth: "880px", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <h1 style={{ ...heading, fontSize: "34px", fontWeight: 700, letterSpacing: "-.02em", margin: 0 }}>
-            Mit Pro schneller zur Prüfung
+            Mit Pro ohne Limit üben
           </h1>
           <p style={{ color: "var(--muted)", fontSize: "16px", marginTop: "10px" }}>
-            Schalte alle Themen und die volle Prüfungssimulation frei.
+            Free und Pro haben dieselben Fragen. Pro hebt das Limit von 3 Lernsitzungen pro Prüfung auf.
           </p>
         </div>
 
@@ -129,7 +135,7 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
           >
             <div style={{ ...heading, fontSize: "20px", fontWeight: 700, color: "var(--accent-strong)" }}>Pro</div>
             <div style={{ ...heading, fontSize: "30px", fontWeight: 700, margin: "8px 0 18px" }}>
-              9,99 € <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--muted)" }}>/ Monat</span>
+              9,99 € <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--muted)" }}>/ Monat (Endpreis)</span>
             </div>
             <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
               {proFeatures.map((f) => (
@@ -186,27 +192,42 @@ export default function UpgradeClient({ isPro, isLoggedIn, periodEnd, cancelSche
                 )}
               </div>
             ) : (
-              <button
-                onClick={handleUpgrade}
-                disabled={loading}
-                className="pk-btn-accent"
-                style={{
-                  width: "100%",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "13px 18px",
-                  background: "var(--accent)",
-                  color: "var(--on-accent)",
-                  fontWeight: 700,
-                  fontSize: "15px",
-                  cursor: loading ? "default" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  transition: "transform .18s, box-shadow .18s",
-                }}
-              >
-                {loading ? "Wird geladen…" : "Jetzt auf Pro upgraden"}
-              </button>
+              <>
+                <p style={{ fontSize: "13px", lineHeight: 1.5, color: "var(--muted)", margin: "0 0 12px" }}>
+                  Laufzeit ein Monat, verlängert sich automatisch um je einen Monat. Jederzeit zum Monatsende kündbar. Es gelten
+                  die <a href="/agb" style={{ color: "var(--accent-strong)" }}>Nutzungsbedingungen</a> und die{" "}
+                  <a href="/widerruf" style={{ color: "var(--accent-strong)" }}>Widerrufsbelehrung</a>. Minderjährige brauchen die
+                  Zustimmung ihrer Erziehungsberechtigten. Keine Bestehensgarantie.
+                </p>
+                <label style={{ display: "flex", gap: "9px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, margin: "0 0 14px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: "3px" }} />
+                  <span>{EARLY_START_CONSENT}</span>
+                </label>
+                <button
+                  onClick={handleUpgrade}
+                  disabled={loading || !consent}
+                  className="pk-btn-accent"
+                  style={{
+                    width: "100%",
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "13px 18px",
+                    background: "var(--accent)",
+                    color: "var(--on-accent)",
+                    fontWeight: 700,
+                    fontSize: "15px",
+                    cursor: loading || !consent ? "default" : "pointer",
+                    opacity: loading || !consent ? 0.6 : 1,
+                    transition: "transform .18s, box-shadow .18s",
+                  }}
+                >
+                  {loading ? "Wird geladen" : "Weiter zur Bezahlung"}
+                </button>
+              </>
             )}
+            <a href="/widerruf" style={{ display: "block", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--accent-strong)", marginTop: "12px" }}>
+              Vertrag widerrufen
+            </a>
             {error && (
               <div style={{ marginTop: "10px", fontSize: "13px", color: "var(--err-strong)" }}>{error}</div>
             )}
