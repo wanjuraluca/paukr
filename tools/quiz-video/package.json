@@ -1,0 +1,14 @@
+{
+  "name": "paukr-quiz-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "@fontsource/hanken-grotesk": "5.2.5",
+    "@fontsource/space-grotesk": "5.2.5",
+    "@napi-rs/canvas": "0.1.65",
+    "ffmpeg-static": "5.2.0"
+  }
+}
