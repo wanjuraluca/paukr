@@ -9,7 +9,8 @@ const PRODUCT_NAME = "paukr";
 // the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
 // An exact multiple of 10 is shown as is, since "300+" would overstate 300.
 function questionCountLabel(total: number): string {
-  return total % 10 === 0 ? `${total}` : `${Math.floor(total / 10) * 10}+`;
+  const rounded = (Math.floor(total / 10) * 10).toLocaleString("de-DE");
+  return total % 10 === 0 ? rounded : `${rounded}+`;
 }
 
 function CheckItem({ text, filled }: { text: string; filled: boolean }) {

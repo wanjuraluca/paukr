@@ -8,7 +8,7 @@ import LandingClient from "./LandingClient";
 export const revalidate = 3600;
 
 // Used only if the database cannot be reached while the page is built.
-const FALLBACK = { questionCount: 900, examCount: 3 };
+const FALLBACK = { questionCount: 2700, examCount: 9 };
 
 async function liveCounts(): Promise<{ questionCount: number; examCount: number }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
