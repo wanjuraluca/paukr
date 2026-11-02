@@ -325,6 +325,31 @@ export default function AppClient({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [confirmSimExit]);
+  // Like the profile menu, a failed start only shows on the screen it happened on.
+  const [startErrorScreen, setStartErrorScreen] = useState<Screen | null>(null);
+  // Only a reached limit leads to the paywall. Anything else is a failure on our
+  // side or the connection, which must not look like "you have to pay".
+  const startOrExplain = async <T extends { ok: boolean; limitReached?: boolean }>(
+    paywall: PracticeMode | "blitz",
+    start: () => Promise<T>,
+  ): Promise<T | null> => {
+    setStartErrorScreen(null);
+    let res: T;
+    try {
+      res = await start();
+    } catch {
+      setStartErrorScreen(screen);
+      return null;
+    }
+    if (res.ok) return res;
+    if (res.limitReached) {
+      setPaywallMode(paywall);
+      setScreen("paywall");
+    } else {
+      setStartErrorScreen(screen);
+    }
+    return null;
+  };
 
   // ===== Blitz run state =====
   // The clock is the game, so it lives on a wall-clock deadline instead of a
@@ -455,12 +480,8 @@ export default function AppClient({
       setScreen("paywall");
       return;
     }
-    const res = await startPracticeSession(examId);
-    if (!res.ok) {
-      setPaywallMode(targetMode);
-      setScreen("paywall");
-      return;
-    }
+    const res = await startOrExplain(targetMode, () => startPracticeSession(examId));
+    if (!res) return;
     if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
     setMode(targetMode);
     setPracticeTopic(topic);
@@ -482,12 +503,8 @@ export default function AppClient({
       setScreen("paywall");
       return;
     }
-    const res = await startExamAttempt(examId, timeLimit);
-    if (!res.ok) {
-      setPaywallMode("sim");
-      setScreen("paywall");
-      return;
-    }
+    const res = await startOrExplain("sim", () => startExamAttempt(examId, timeLimit));
+    if (!res) return;
     if (!isPro) setTriesLeftState((t) => Math.max(0, t - 1));
     setMode("sim");
     setSimProbe(probe);
@@ -563,12 +580,8 @@ export default function AppClient({
       setScreen("paywall");
       return;
     }
-    const res = await startBlitzRun(examId);
-    if (!res.ok) {
-      setPaywallMode("blitz");
-      setScreen("paywall");
-      return;
-    }
+    const res = await startOrExplain("blitz", () => startBlitzRun(examId));
+    if (!res) return;
     if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
     blitzRunIdRef.current = res.runId ?? null;
     setBlitzPrevBest(bestDepth);
@@ -1911,6 +1924,25 @@ export default function AppClient({
             </div>
           </div>
         </main>
+      )}
+
+      {startErrorScreen === screen && (
+        <div
+          role="alert"
+          style={{ position: "fixed", left: "16px", right: "16px", bottom: "20px", zIndex: 70, maxWidth: "460px", margin: "0 auto", padding: "14px 14px 14px 18px", display: "flex", alignItems: "center", gap: "12px", borderRadius: "14px", background: "var(--surface)", border: "1px solid var(--err)", boxShadow: "0 16px 40px rgba(0,0,0,.25)", fontSize: "14.5px", lineHeight: 1.45 }}
+        >
+          <span style={{ flex: 1 }}>Das hat gerade nicht geklappt. Prüf deine Verbindung und versuch es noch einmal. Hilft das nicht, lade die Seite neu.</span>
+          <button
+            onClick={() => setStartErrorScreen(null)}
+            aria-label="Hinweis schließen"
+            className="pk-practice-exit"
+            style={{ flexShrink: 0, width: "34px", height: "34px", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer", display: "grid", placeItems: "center" }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   );
