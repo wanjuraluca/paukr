@@ -26,13 +26,16 @@ Optionen:
 `;
 
 function query(sql) {
-  const out = execSync(`npx supabase db query --linked --read-only "${sql.replace(/\s+/g, " ")}"`, {
+  // Without these flags the CLI prints a table in a normal terminal.
+  const out = execSync(`npx supabase db query --linked --read-only --agent no --output-format json "${sql.replace(/\s+/g, " ")}"`, {
     cwd: repoRoot,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
     stdio: ["ignore", "pipe", "ignore"],
   });
-  return JSON.parse(out.slice(out.indexOf("{"))).rows;
+  const start = out.indexOf("[");
+  if (start < 0) throw new Error("Unerwartete Antwort von der Supabase-CLI.");
+  return JSON.parse(out.slice(start));
 }
 
 function loadExams() {
