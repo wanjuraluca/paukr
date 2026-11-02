@@ -1,0 +1,33 @@
+name: Apply database migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two pushes in a row must not migrate at the same time.
+concurrency:
+  group: database-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: gpkybiurhledyayvzwst
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Show pending migrations
+        run: npx --yes supabase@3.0.0 db push --remote="$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --dry-run --yes
+      - name: Apply migrations
+        run: npx --yes supabase@3.0.0 db push --remote="$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
