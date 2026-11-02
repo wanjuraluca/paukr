@@ -314,6 +314,17 @@ export default function AppClient({
     }));
   // Which mode was blocked by the paywall, only used to render its copy.
   const [paywallMode, setPaywallMode] = useState<PracticeMode | "blitz">("practice");
+  // Leaving a running simulation grades it, so the X asks first. The clock keeps
+  // running behind the dialog.
+  const [confirmSimExit, setConfirmSimExit] = useState(false);
+  useEffect(() => {
+    if (!confirmSimExit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmSimExit(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirmSimExit]);
 
   // ===== Blitz run state =====
   // The clock is the game, so it lives on a wall-clock deadline instead of a
@@ -497,6 +508,7 @@ export default function AppClient({
   const finishSimulation = () => {
     if (finishingRef.current) return;
     finishingRef.current = true;
+    setConfirmSimExit(false);
     const correctCount = results.filter((r) => r.correct).length;
     const total = session.length;
     const grade = gradeExam(correctCount, total);
@@ -710,6 +722,10 @@ export default function AppClient({
   }, [blitzTicking, screen]);
 
   const exitPractice = () => setScreen("detail");
+  const requestPracticeExit = () => {
+    if (mode === "sim" && q) setConfirmSimExit(true);
+    else exitPractice();
+  };
   const backToOverview = () => setScreen("dashboard");
   const goBack = () => setScreen((s) => (s === "detail" ? "dashboard" : "detail"));
   const goToUpgrade = () => router.push("/upgrade");
@@ -1300,7 +1316,7 @@ export default function AppClient({
               )}
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)", marginLeft: mode === "sim" ? undefined : "auto" }}>{qCounter}</span>
               <button
-                onClick={exitPractice}
+                onClick={requestPracticeExit}
                 aria-label="Verlassen"
                 className="pk-practice-exit"
                 style={{ width: "38px", height: "38px", borderRadius: "11px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform .18s, border-color .2s" }}
@@ -1487,6 +1503,30 @@ export default function AppClient({
               </div>
             )}
           </main>
+          {confirmSimExit && (
+            <div
+              onClick={() => setConfirmSimExit(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", padding: "20px", background: "color-mix(in oklch, var(--bg) 60%, transparent)", backdropFilter: "blur(6px)" }}
+            >
+              <div
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="sim-exit-title"
+                aria-describedby="sim-exit-text"
+                onClick={(e) => e.stopPropagation()}
+                style={{ width: "100%", maxWidth: "420px", padding: "26px", borderRadius: "18px", background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 24px 60px rgba(0,0,0,.25)" }}
+              >
+                <h2 id="sim-exit-title" style={{ ...heading, fontWeight: 700, fontSize: "21px", margin: "0 0 10px" }}>Simulation beenden?</h2>
+                <p id="sim-exit-text" style={{ fontSize: "15px", lineHeight: 1.55, color: "var(--muted)", margin: "0 0 22px" }}>
+                  Du hast {results.length} von {total} Fragen beantwortet. Offene Fragen zählen als falsch, der Versuch wird so gewertet.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  <button autoFocus onClick={() => setConfirmSimExit(false)} className="pk-scale-btn-sm" style={{ flex: "1 1 160px", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 16px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none" }}>Weiter bearbeiten</button>
+                  <button onClick={finishSimulation} className="pk-scale-btn-sm" style={{ flex: "1 1 160px", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15px", padding: "12px 16px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}>Beenden und auswerten</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
