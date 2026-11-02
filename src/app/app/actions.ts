@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reviewCard, freshCard, type SrsState } from "@/lib/srs";
 import { FREE_TRY_LIMIT } from "@/lib/limits";
+import { dayBefore, todayISODate } from "@/lib/streak";
 
 const XP_PER_CORRECT = 50;
 
@@ -53,6 +54,8 @@ export interface RecordAttemptResult {
   xpTotal?: number;
   xpGained?: number;
   currentStreak?: number;
+  // When the question is due again, so the client can reschedule it locally.
+  dueAt?: string;
 }
 
 /**
@@ -193,7 +196,7 @@ export async function recordAttempt(
     })
     .eq("id", user.id);
 
-  return { ok: true, xpTotal, xpGained, currentStreak: streak };
+  return { ok: true, xpTotal, xpGained, currentStreak: streak, dueAt };
 }
 
 export interface StartExamResult {
@@ -376,10 +379,6 @@ export async function finishExamAttempt(
     .eq("id", attemptId);
 }
 
-function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /**
  * Advances the daily streak: +1 if the last activity was yesterday, unchanged
  * if it was already today, reset to 1 otherwise (or first ever activity).
@@ -392,10 +391,7 @@ function advanceStreak(
   const today = todayISODate();
   if (lastDate === today) return { streak: current, longest };
 
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-  const streak = lastDate === yesterday ? current + 1 : 1;
+  const streak = lastDate === dayBefore(today) ? current + 1 : 1;
   return { streak, longest: Math.max(longest, streak) };
 }
 

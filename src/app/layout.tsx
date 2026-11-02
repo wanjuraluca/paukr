@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -26,6 +26,16 @@ export const metadata: Metadata = {
     locale: "de_DE",
     type: "website",
   },
+};
+
+// Colours the phone's browser bar to match the page in light and dark mode.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1118" },
+  ],
 };
 
 export default function RootLayout({

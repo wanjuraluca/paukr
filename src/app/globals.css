@@ -500,3 +500,112 @@ body {
     border-left: none !important;
   }
 }
+
+/* ===== App (/app) on phones =====
+   The app screens are styled inline for desktop widths, so these rules use
+   !important to override them below 640px. */
+@media (max-width: 640px) {
+  .pk-app-header {
+    padding: 12px 16px !important;
+    gap: 10px !important;
+  }
+  .pk-streak-label {
+    display: none;
+  }
+  .pk-app-bar {
+    padding: 12px 16px !important;
+    gap: 12px !important;
+  }
+  .pk-app-main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 32px !important;
+  }
+  .pk-app-card {
+    padding: 32px 20px !important;
+  }
+  /* Ring on the left, XP and streak stacked on the right. */
+  .pk-app-stats {
+    grid-template-columns: auto 1fr !important;
+    padding: 20px !important;
+    column-gap: 20px !important;
+  }
+  .pk-app-stats > :first-child {
+    grid-row: span 2;
+  }
+  .pk-app-stats > :not(:first-child) {
+    padding-left: 18px !important;
+  }
+  .pk-app-modes,
+  .pk-boon-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pk-app-modes > button {
+    padding: 22px !important;
+  }
+  /* Icon + text on the first line, the badge or best score moves below. */
+  .pk-row-card {
+    flex-wrap: wrap;
+    padding: 18px !important;
+    gap: 14px !important;
+  }
+  .pk-row-card > span:nth-child(2) {
+    flex: 1 1 calc(100% - 60px) !important;
+  }
+  .pk-row-card > span:last-child {
+    margin-left: 58px;
+  }
+}
+
+/* ===== Touch devices ===== */
+/* No grey flash over every tapped button on iOS and Android. */
+.eh :is(button, a, label, [role="button"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+/* A finger has no hover: without this, the lift or scale of a hover effect
+   sticks to a card after tapping it. The press (:active) feedback stays. */
+@media (hover: none) {
+  .eh [class*="pk-"]:hover:not(:active) {
+    transform: none !important;
+  }
+}
+@media (max-width: 640px) {
+  /* iOS zooms into any field with text smaller than 16px when it gets focus. */
+  .eh :is(input, textarea, select) {
+    font-size: 16px !important;
+  }
+}
+
+/* ===== Small phones ===== */
+/* German compounds like "Anwendungsentwicklung" are wider than a 320px
+   screen at heading sizes, so headings may hyphenate (lang="de") and, as a
+   last resort, break anywhere instead of running off the page. */
+.eh :is(h1, h2, h3) {
+  hyphens: auto;
+  overflow-wrap: break-word;
+  /* Only split long words, and leave at least 4 letters on each side, so
+     "Limit" never becomes "Li-mit". */
+  hyphenate-limit-chars: 10 4 4;
+  -webkit-hyphenate-limit-before: 4;
+  -webkit-hyphenate-limit-after: 4;
+}
+@media (max-width: 640px) {
+  .pk-hide-narrow {
+    display: none;
+  }
+  /* Footer links sit close together, give each a finger-sized row. */
+  .pk-footer-links {
+    gap: 4px 22px !important;
+  }
+  .pk-footer-links a {
+    padding: 10px 0;
+  }
+}
+@media (max-width: 380px) {
+  .pk-stat-value {
+    font-size: 24px !important;
+  }
+  .pk-app-actions {
+    grid-template-columns: 1fr !important;
+  }
+}

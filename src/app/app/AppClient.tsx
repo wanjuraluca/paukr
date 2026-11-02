@@ -121,7 +121,7 @@ interface Props {
  * last answered incorrectly. In "sim" mode it returns the whole pool, shuffled,
  * as a single one-shot graded run.
  */
-function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] {
+function buildSession(pool: QuizQuestion[], mode: PracticeMode, fillUp = false): QuizQuestion[] {
   if (mode === "wrong") {
     return pool
       .filter((q) => q.lastCorrect === false)
@@ -135,7 +135,16 @@ function buildSession(pool: QuizQuestion[], mode: PracticeMode): QuizQuestion[] 
     .filter((q) => !q.isNew && q.dueAt !== null && new Date(q.dueAt).getTime() <= now)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const fresh = shuffleArr(pool.filter((q) => q.isNew));
-  return [...due, ...fresh].slice(0, SESSION_SIZE);
+  const picked = [...due, ...fresh];
+  // Practising one topic on purpose should never end in "nothing due", so
+  // the rest of the topic fills up, last wrong answers first.
+  if (fillUp && picked.length < SESSION_SIZE) {
+    const rest = pool
+      .filter((q) => !picked.includes(q))
+      .sort((a, b) => Number(a.lastCorrect ?? false) - Number(b.lastCorrect ?? false) || dueTime(a) - dueTime(b));
+    picked.push(...rest);
+  }
+  return picked.slice(0, SESSION_SIZE);
 }
 
 function formatClock(totalSeconds: number): string {
@@ -216,7 +225,19 @@ export default function AppClient({
   const examId = activeExam.id;
   const examName = activeExam.name;
   const topics = activeExam.topics;
-  const questions = activeExam.questions;
+  // Answers given since the page loaded, by question id. The server data only
+  // refreshes on reload, so without this a second session would repeat the
+  // same questions and the wrong-question count and progress would stand still.
+  const [answeredLocally, setAnsweredLocally] = useState<
+    Record<string, { lastCorrect: boolean; dueAt: string | null }>
+  >({});
+  const withLocalAnswers = (list: QuizQuestion[]): QuizQuestion[] =>
+    list.map((x) => {
+      const local = answeredLocally[x.id];
+      return local ? { ...x, lastCorrect: local.lastCorrect, dueAt: local.dueAt, isNew: false } : x;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const questions = useMemo(() => withLocalAnswers(activeExam.questions), [activeExam.questions, answeredLocally]);
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   // Multi-select (checkbox) picks for question_type = "multiple", by option
@@ -239,16 +260,30 @@ export default function AppClient({
     }
     if (res.currentStreak !== undefined) setStreak(res.currentStreak);
   };
+  // Marks a question as answered right away (not due until the server says
+  // when) and takes the real due date once the server has scheduled it.
+  const noteAnswer = (questionId: string, correct: boolean, res: Promise<RecordAttemptResult>) => {
+    setAnsweredLocally((m) => ({ ...m, [questionId]: { lastCorrect: correct, dueAt: null } }));
+    void res.then((r) => {
+      syncTotals(r);
+      if (r.ok && r.dueAt) {
+        setAnsweredLocally((m) => ({ ...m, [questionId]: { lastCorrect: correct, dueAt: r.dueAt ?? null } }));
+      }
+    });
+  };
   const [results, setResults] = useState<{ topic: string; correct: boolean }[]>([]);
   // The questions for the current run, and which mode built it.
   const [session, setSession] = useState<QuizQuestion[]>([]);
   const [mode, setMode] = useState<PracticeMode>("practice");
+  // Topic the current practice run is limited to, null for the whole exam.
+  const [practiceTopic, setPracticeTopic] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
   // When the current question was shown, to measure hesitation for SM-2.
   const shownAtRef = useRef<number>(0);
   // Exam-simulation-only state: the running attempt, countdown and final grade.
   const [examAttemptId, setExamAttemptId] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(SIM_TIME_LIMIT_SECONDS);
+  const simDeadlineRef = useRef(0);
   const [simProbe, setSimProbe] = useState(false);
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const finishingRef = useRef(false);
@@ -298,6 +333,8 @@ export default function AppClient({
   const blitzCorrectRef = useRef(0);
   const blitzEndedRef = useRef(false);
   const blitzRunIdRef = useRef<string | null>(null);
+  // Best depth before the current run started, for the "new record" line.
+  const [blitzPrevBest, setBlitzPrevBest] = useState(0);
   const blitzUsedRef = useRef<Set<string>>(new Set());
   const [boons, setBoons] = useState<BoonState>(emptyBoons());
   const [boonOffer, setBoonOffer] = useState<BoonDef[]>([]);
@@ -328,15 +365,19 @@ export default function AppClient({
     };
   }, []);
 
-  // Countdown for the exam simulation; auto-finishes when time runs out.
+  // Countdown for the exam simulation, read from a wall-clock deadline like
+  // the Blitz clock: a throttled background tab must not slow the exam time
+  // down. Auto-finishes when time runs out.
   useEffect(() => {
     if (screen !== "practice" || mode !== "sim") return;
-    if (secondsLeft <= 0) {
-      finishSimulation();
-      return;
-    }
-    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(id);
+    const tick = () =>
+      setSecondsLeft(Math.max(0, Math.ceil((simDeadlineRef.current - Date.now()) / 1000)));
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [screen, mode]);
+  useEffect(() => {
+    if (screen === "practice" && mode === "sim" && secondsLeft <= 0) finishSimulation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, mode, secondsLeft]);
 
@@ -386,7 +427,18 @@ export default function AppClient({
   // same free-tier try limit as one shared pool of 3 per exam. Checks the
   // limit client-side first (fast path for the common case), then confirms
   // server-side, since the client state could be stale or bypassed.
-  const startPracticeMode = async (targetMode: "practice" | "wrong") => {
+  const startPracticeMode = async (targetMode: "practice" | "wrong", topic: string | null = null) => {
+    const pool = topic ? questions.filter((x) => x.topic === topic) : questions;
+    const nextSession = buildSession(pool, targetMode, topic !== null);
+    // Nothing to practise: show the empty state without using up a free try.
+    if (nextSession.length === 0) {
+      setMode(targetMode);
+      setPracticeTopic(topic);
+      setSession([]);
+      resetQuiz();
+      setScreen("practice");
+      return;
+    }
     if (!isPro && triesLeftState <= 0) {
       setPaywallMode(targetMode);
       setScreen("paywall");
@@ -400,12 +452,17 @@ export default function AppClient({
     }
     if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
     setMode(targetMode);
-    setSession(buildSession(questions, targetMode));
+    setPracticeTopic(topic);
+    setSession(nextSession);
     resetQuiz();
     setScreen("practice");
   };
   const startPractice = () => void startPracticeMode("practice");
   const startWrongPractice = () => void startPracticeMode("wrong");
+  const startTopicPractice = (topic: string) => void startPracticeMode("practice", topic);
+  // "Nochmal üben" repeats the run the user just finished, same mode and topic.
+  const repeatPractice = () =>
+    void startPracticeMode(mode === "wrong" ? "wrong" : "practice", practiceTopic);
   const runSimulation = async (probe: boolean) => {
     if (!probe && !simUnlocked) return; // Gated until the pool is mastered enough.
     const timeLimit = probe ? PROBE_SIM_SECONDS : SIM_TIME_LIMIT_SECONDS;
@@ -425,6 +482,7 @@ export default function AppClient({
     setSimProbe(probe);
     setSession(probe ? shuffleArr(questions).slice(0, PROBE_SIM_QUESTIONS) : buildSession(questions, "sim"));
     resetQuiz();
+    simDeadlineRef.current = Date.now() + timeLimit * 1000;
     setSecondsLeft(timeLimit);
     setGradeResult(null);
     finishingRef.current = false;
@@ -501,6 +559,7 @@ export default function AppClient({
     }
     if (res.triesLeft !== undefined) setTriesLeftState(res.triesLeft);
     blitzRunIdRef.current = res.runId ?? null;
+    setBlitzPrevBest(bestDepth);
     blitzEndedRef.current = false;
     blitzDepthRef.current = 0;
     blitzCorrectRef.current = 0;
@@ -545,7 +604,7 @@ export default function AppClient({
     if (blitzEndedRef.current || !blitzQ) return;
 
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(blitzQ.id, correct, responseMs, optionIds).then(syncTotals);
+    noteAnswer(blitzQ.id, correct, recordAttempt(blitzQ.id, correct, responseMs, optionIds));
 
     const depth = blitzDepthRef.current;
     let deltaSeconds = 0;
@@ -688,7 +747,7 @@ export default function AppClient({
     // Persist the attempt + advance spaced repetition (fire-and-forget; the
     // server is the source of truth on the next load).
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(q.id, opt.isCorrect, responseMs, [opt.id]).then(syncTotals);
+    noteAnswer(q.id, opt.isCorrect, recordAttempt(q.id, opt.isCorrect, responseMs, [opt.id]));
     if (mode === "sim" && examAttemptId) {
       void recordExamAnswer(examAttemptId, q.id, opt.id, opt.isCorrect);
     }
@@ -720,7 +779,7 @@ export default function AppClient({
 
     const optionIds = selectedMulti.map((i) => q.options[i].id);
     const responseMs = Math.max(0, Math.round(performance.now() - shownAtRef.current));
-    void recordAttempt(q.id, isCorrect, responseMs, optionIds).then(syncTotals);
+    noteAnswer(q.id, isCorrect, recordAttempt(q.id, isCorrect, responseMs, optionIds));
     if (mode === "sim" && examAttemptId) {
       void recordExamAnswer(examAttemptId, q.id, null, isCorrect, optionIds);
     }
@@ -780,7 +839,6 @@ export default function AppClient({
     return { name, scoreLabel: p + "%", color: passColor(p) };
   });
 
-  const maxCount = topics.reduce((m, t) => Math.max(m, t.count), 1);
 
   // Confetti pieces (result screen, only when passed).
   const confetti = [];
@@ -819,7 +877,7 @@ export default function AppClient({
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         overflowX: "hidden",
         transition: "background .5s ease, color .5s ease",
         fontSize: "17px",
@@ -839,6 +897,7 @@ export default function AppClient({
           }}
         >
           <div
+            className="pk-app-header"
             style={{
               maxWidth: "1160px",
               margin: "0 auto",
@@ -880,7 +939,7 @@ export default function AppClient({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 6px", borderRadius: "100px", border: "1px solid var(--border)", background: "var(--surface)" }}>
               <span style={{ ...heading, width: "26px", height: "26px", borderRadius: "50%", background: "color-mix(in oklch, var(--accent) 22%, var(--bg))", display: "grid", placeItems: "center", color: "var(--accent-strong)", fontWeight: 700, fontSize: "12px" }}>{streak}</span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
+              <span className="pk-streak-label" style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted)" }}>Serie</span>
             </div>
             <button
               onClick={toggleTheme}
@@ -965,7 +1024,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 1: DASHBOARD ===== */}
       {screen === "dashboard" && (
-        <main style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "1160px", margin: "0 auto", padding: "64px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "44px" }}>
             <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--accent-strong)" }}>Willkommen zurück{firstName ? `, ${firstName}` : ""}</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(34px,4.4vw,52px)", letterSpacing: "-.03em", margin: "10px 0 12px", lineHeight: 1.05 }}>Wähle deine Prüfung</h1>
@@ -973,12 +1032,13 @@ export default function AppClient({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "20px" }}>
             {exams.map((e, i) => {
+              const eQuestions = withLocalAnswers(e.questions);
               const eMasteredPct =
-                e.questions.length === 0
+                eQuestions.length === 0
                   ? 0
                   : Math.round(
-                      (e.questions.filter((x) => x.lastCorrect === true).length /
-                        e.questions.length) *
+                      (eQuestions.filter((x) => x.lastCorrect === true).length /
+                        eQuestions.length) *
                         100,
                     );
               return (
@@ -1016,13 +1076,13 @@ export default function AppClient({
 
       {/* ===== SCREEN 2: EXAM DETAIL ===== */}
       {screen === "detail" && (
-        <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "1000px", margin: "0 auto", padding: "56px 28px 90px" }}>
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Prüfungsvorbereitung</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>{examName}</h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder unter echten Bedingungen simulieren."}</p>
           </div>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
+          <div className="pk-app-stats" style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
               <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: `conic-gradient(var(--accent) 0% ${masteredPct}%, var(--bg-alt) ${masteredPct}% 100%)` }} />
               <div style={{ position: "absolute", inset: "10px", borderRadius: "50%", background: "var(--surface)", display: "grid", placeItems: "center" }}>
@@ -1031,7 +1091,7 @@ export default function AppClient({
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>XP gesammelt</div>
-              <div style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xp.toLocaleString("de-DE")}</div>
+              <div className="pk-stat-value" style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent)" }}>{xp.toLocaleString("de-DE")}</div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: "24px" }}>
               <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 600, marginBottom: "4px" }}>Aktuelle Serie</div>
@@ -1039,7 +1099,7 @@ export default function AppClient({
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2c1 3 3 4.5 3 7a3 3 0 0 1-6 0c0-1 .4-1.8 1-2.5C9 9 8 11 8 13a4 4 0 0 0 8 0c0-3.5-2-6.5-4-11Z" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em" }}>{streak} {streak === 1 ? "Tag" : "Tage"}</span>
+                <span className="pk-stat-value" style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{streak} {streak === 1 ? "Tag" : "Tage"}</span>
               </div>
             </div>
           </div>
@@ -1048,7 +1108,7 @@ export default function AppClient({
           {wrongCount > 0 && (
             <button
               onClick={startWrongPractice}
-              className="pk-mode-secondary"
+              className="pk-mode-secondary pk-row-card"
               style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .08s both", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--err) 8%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--err) 35%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "26px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             >
               <span style={{ width: "44px", height: "44px", borderRadius: "13px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -1073,7 +1133,7 @@ export default function AppClient({
                 : `Keine kostenlosen Versuche mehr für diese Prüfung`}
             </p>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
+          <div className="pk-app-modes" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "40px" }}>
             <button
               onClick={startPractice}
               className="pk-mode-primary"
@@ -1118,7 +1178,7 @@ export default function AppClient({
           <button
             onClick={() => void startBlitz()}
             disabled={questions.length === 0}
-            className="pk-blitz-card"
+            className="pk-blitz-card pk-row-card"
             style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .18s both", width: "100%", textAlign: "left", cursor: questions.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "16px", background: "color-mix(in oklch, var(--accent) 9%, var(--surface))", color: "var(--text)", border: "1px solid color-mix(in oklch, var(--accent) 38%, var(--border))", borderRadius: "18px", padding: "20px 24px", marginBottom: "40px", transition: "transform .2s, border-color .2s, box-shadow .3s" }}
             onAnimationEnd={(e) => { e.currentTarget.style.animation = "none"; }}
           >
@@ -1196,10 +1256,16 @@ export default function AppClient({
           )}
           <h2 style={{ ...heading, animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .2s both", fontWeight: 600, fontSize: "20px", letterSpacing: "-.01em", margin: "0 0 18px" }}>Themengebiete</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "14px" }}>
-            {topics.map((t, i) => (
+            {topics.map((t, i) => {
+              const topicQs = questions.filter((x) => x.topic === t.name);
+              const topicPct = topicQs.length
+                ? Math.round((topicQs.filter((x) => x.lastCorrect === true).length / topicQs.length) * 100)
+                : 0;
+              return (
               <button
                 key={t.name}
-                onClick={startPractice}
+                onClick={() => startTopicPractice(t.name)}
+                disabled={t.count === 0}
                 className="pk-topic-card"
                 style={{ animation: `pk-revUp .6s cubic-bezier(.16,1,.3,1) ${(i * 0.06).toFixed(2)}s both`, textAlign: "left", cursor: "pointer", fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px", transition: "transform .22s, border-color .25s, box-shadow .3s" }}
               >
@@ -1208,22 +1274,24 @@ export default function AppClient({
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--muted)" }}>{t.count} {t.count === 1 ? "Frage" : "Fragen"}</span>
                 </div>
                 <div style={{ height: "6px", borderRadius: "100px", background: "var(--bg-alt)", overflow: "hidden" }}>
-                  <div style={{ width: `${Math.round((t.count / maxCount) * 100)}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
+                  <div style={{ width: `${topicPct}%`, height: "100%", borderRadius: "100px", background: "var(--accent)" }} />
                 </div>
+                <div style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--muted)", marginTop: "8px" }}>{topicPct}% richtig</div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </main>
       )}
 
       {/* ===== SCREEN 3: PRACTICE ===== */}
       {screen === "practice" && (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
             <div style={{ height: "4px", background: "var(--bg-alt)" }}>
               <div style={{ width: practicePct, height: "100%", background: "var(--accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
             </div>
-            <div style={{ maxWidth: "820px", margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--muted)" }}>{mode === "sim" ? "Prüfungssimulation" : (q?.topic ?? "")}</span>
               {mode === "sim" && (
                 <span style={{ ...heading, fontSize: "14px", fontWeight: 700, color: secondsLeft <= 60 ? "var(--err-strong)" : "var(--accent-strong)", marginLeft: "auto" }}>
@@ -1243,7 +1311,7 @@ export default function AppClient({
               </button>
             </div>
           </div>
-          <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "60px 28px 40px", display: "flex", flexDirection: "column" }}>
+          <main className="pk-app-main" style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "60px 28px 40px", display: "flex", flexDirection: "column" }}>
             {q ? (
               <>
                 <div key={q.id} style={{ animation: "pk-revUp .45s cubic-bezier(.16,1,.3,1) both" }}>
@@ -1326,7 +1394,7 @@ export default function AppClient({
                               </svg>
                             ) : null
                           ) : (
-                            ["A", "B", "C", "D"][i]
+                            String.fromCharCode(65 + i)
                           )}
                         </span>
                         <span style={{ flex: 1 }}>{o.text}</span>
@@ -1424,13 +1492,13 @@ export default function AppClient({
 
       {/* ===== SCREEN 4: RESULT ===== */}
       {screen === "result" && (
-        <main style={{ position: "relative", maxWidth: "760px", margin: "0 auto", padding: "56px 28px 90px", overflow: "hidden" }}>
+        <main className="pk-app-main" style={{ position: "relative", maxWidth: "760px", margin: "0 auto", padding: "56px 28px 90px", overflow: "hidden" }}>
           {passed && confetti.map((c) => <span key={c.key} style={c.style} />)}
           <div style={{ position: "relative", zIndex: 1, textAlign: "center", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both" }}>
             <div style={{ position: "relative", width: "150px", height: "150px", margin: "0 auto 26px" }}>
               <svg width="150" height="150" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)" }}>
                 <circle cx="60" cy="60" r="54" fill="none" stroke="var(--bg-alt)" strokeWidth="11" />
-                <circle cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray="339" strokeDashoffset={ringOffset} style={{ animation: "pk-ringFill 1.1s cubic-bezier(.16,1,.3,1) both" }} />
+                <circle cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="11" strokeLinecap="round" strokeDasharray="339" strokeDashoffset={ringOffset} opacity={scorePct > 0 ? 1 : 0} style={{ animation: "pk-ringFill 1.1s cubic-bezier(.16,1,.3,1) both" }} />
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ ...heading, fontWeight: 700, fontSize: "42px", letterSpacing: "-.03em", lineHeight: 1 }}>{scorePct}{mode === "sim" ? "" : "%"}</span>
@@ -1443,12 +1511,12 @@ export default function AppClient({
                 : passed ? "Bestanden" : "Nicht bestanden"}
             </span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,44px)", letterSpacing: "-.03em", margin: "0 0 10px", lineHeight: 1.05 }}>
-              {passed ? mode === "sim" ? "Stark, Simulation bestanden!" : "Stark, gut geübt!" : "Fast geschafft, dranbleiben!"}
+              {passed ? mode === "sim" ? "Stark, Simulation bestanden!" : "Stark, gut geübt!" : scorePct >= 30 ? "Fast geschafft, dranbleiben!" : "Dranbleiben, das wird!"}
             </h1>
             <p style={{ fontSize: "18px", color: "var(--muted)", margin: "0 auto 40px", maxWidth: "460px" }}>
               {mode === "sim"
                 ? `${correctCount} von ${session.length} Fragen richtig, ${scorePct} von 100 Punkten (Grenze in der Simulation: ${PASS_THRESHOLD}). Übungswert, keine amtliche Bewertung.`
-                : `${correctCount} von ${answeredTotal} Fragen richtig. ${passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
+                : `${correctCount} von ${answeredTotal} Fragen richtig. ${correctCount === answeredTotal ? "Alles gesessen, weiter so." : passed ? "Ein paar Themen brauchen noch etwas Feinschliff." : "Übe die schwachen Themen gezielt weiter."}`}
             </p>
             {mode === "sim" && !simProbe && (
               <div style={{ marginBottom: "40px" }}>
@@ -1489,9 +1557,9 @@ export default function AppClient({
               </div>
             </div>
           )}
-          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
+          <div className="pk-app-actions" style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .14s both" }}>
             <button
-              onClick={mode === "sim" ? (simProbe ? startProbe : startSimulation) : startPractice}
+              onClick={mode === "sim" ? (simProbe ? startProbe : startSimulation) : repeatPractice}
               className="pk-price-btn-ghost"
               style={{ cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "16px", padding: "16px", borderRadius: "15px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
             >
@@ -1510,9 +1578,9 @@ export default function AppClient({
 
       {/* ===== SCREEN 6: BLITZ RUN ===== */}
       {screen === "blitz" && (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: "128px" }}>
                 <span
                   style={{ ...heading, fontWeight: 700, fontSize: "34px", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: blitzDanger ? "var(--err-strong)" : "var(--accent-strong)", transition: "color .2s" }}
@@ -1551,7 +1619,7 @@ export default function AppClient({
               <div style={{ width: `${Math.min(100, (blitzSecondsLeft / BLITZ_START_SECONDS) * 100)}%`, height: "100%", background: blitzDanger ? "var(--err)" : "var(--accent)", transition: "width .12s linear, background .2s" }} />
             </div>
           </div>
-          <main style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "34px 28px 40px", display: "flex", flexDirection: "column" }}>
+          <main className="pk-app-main" style={{ flex: 1, maxWidth: "820px", width: "100%", margin: "0 auto", padding: "34px 28px 40px", display: "flex", flexDirection: "column" }}>
             {/* Boons in hand. Consumables show their charges, the two usable
                 ones are buttons. */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px", minHeight: "40px" }}>
@@ -1632,7 +1700,7 @@ export default function AppClient({
                                 </svg>
                               ) : null
                             ) : (
-                              ["A", "B", "C", "D"][i]
+                              String.fromCharCode(65 + i)
                             )}
                           </span>
                           <span style={{ flex: 1 }}>{opt.text}</span>
@@ -1666,7 +1734,7 @@ export default function AppClient({
 
       {/* ===== SCREEN 7: BOON PICK (clock is paused here) ===== */}
       {screen === "boon" && (
-        <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
+        <main className="pk-app-main" style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: "60px 28px" }}>
           <div style={{ width: "100%", maxWidth: "900px" }}>
             <div style={{ textAlign: "center", marginBottom: "34px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Tiefe {blitzDepth} erreicht</span>
@@ -1675,7 +1743,7 @@ export default function AppClient({
                 Die Uhr steht still, solange du wählst. Es bleiben {formatBlitzClock(blitzMsLeft)} Sekunden.
               </p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, boonOffer.length)},1fr)`, gap: "16px" }}>
+            <div className="pk-boon-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, boonOffer.length)},1fr)`, gap: "16px" }}>
               {boonOffer.map((b, i) => (
                 <button
                   key={b.id}
@@ -1700,8 +1768,8 @@ export default function AppClient({
 
       {/* ===== SCREEN 8: BLITZ SUMMARY ===== */}
       {screen === "blitzover" && (
-        <main style={{ maxWidth: "620px", margin: "0 auto", padding: "70px 28px 90px" }}>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "620px", margin: "0 auto", padding: "70px 28px 90px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }} className="pk-app-card">
             <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--err) 14%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9.5" stroke="var(--err-strong)" strokeWidth="2" />
@@ -1710,7 +1778,7 @@ export default function AppClient({
             </span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3.4vw,34px)", letterSpacing: "-.03em", margin: "0 0 10px" }}>Zeit abgelaufen</h1>
             <p style={{ fontSize: "16.5px", color: "var(--muted)", margin: "0 0 28px", lineHeight: 1.55 }}>
-              {blitzDepth > activeExam.bestBlitzDepth
+              {blitzDepth > blitzPrevBest
                 ? "Neue Bestmarke. Der nächste Lauf geht tiefer."
                 : "Der nächste Lauf geht tiefer."}
             </p>
@@ -1726,7 +1794,7 @@ export default function AppClient({
                 </div>
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+            <div className="pk-app-actions" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
               <button
                 onClick={() => void startBlitz()}
                 className="pk-price-btn-ghost"
@@ -1748,8 +1816,8 @@ export default function AppClient({
 
       {/* ===== SCREEN 5: PAYWALL ===== */}
       {screen === "paywall" && (
-        <main style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
-          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }}>
+        <main className="pk-app-main" style={{ maxWidth: "560px", margin: "0 auto", padding: "90px 28px" }}>
+          <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "24px", padding: "44px 36px" }} className="pk-app-card">
             <span style={{ width: "64px", height: "64px", borderRadius: "18px", background: "color-mix(in oklch, var(--accent) 16%, var(--bg))", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                 <rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--accent-strong)" strokeWidth="2" />
@@ -1765,8 +1833,8 @@ export default function AppClient({
             </p>
 
             <div style={{ textAlign: "left", background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 26px", marginBottom: "26px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "18px" }}>
-                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)" }}>9,99 €</span>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", columnGap: "8px", marginBottom: "18px" }}>
+                <span style={{ ...heading, fontWeight: 700, fontSize: "30px", letterSpacing: "-.02em", color: "var(--accent-strong)", whiteSpace: "nowrap" }}>9,99 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "14px" }}>/ Monat (Endpreis), monatlich kündbar</span>
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>

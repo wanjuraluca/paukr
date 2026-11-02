@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
@@ -22,7 +23,7 @@ function friendlyError(message: unknown): string {
 export default function AuthClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/app";
+  const next = safeNextPath(params.get("next"));
   const supabase = createClient();
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -119,7 +120,7 @@ export default function AuthClient() {
       style={{
         background: "var(--bg)",
         color: "var(--text)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -262,7 +263,7 @@ export default function AuthClient() {
                         type="button"
                         onClick={() => { setForgotMode(true); setError(""); }}
                         className="pk-auth-link"
-                        style={{ cursor: "pointer", background: "none", border: "none", padding: 0, color: "var(--accent-strong)", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif" }}
+                        style={{ cursor: "pointer", background: "none", border: "none", padding: "8px 0", margin: "-8px 0", color: "var(--accent-strong)", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-hanken), sans-serif" }}
                       >
                         Passwort vergessen?
                       </button>
@@ -270,7 +271,7 @@ export default function AuthClient() {
                   </div>
                   <div style={{ position: "relative" }}>
                     <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: "60px" }} />
-                    <button type="button" className="pk-auth-link" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
+                    <button type="button" className="pk-auth-link" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)", padding: "12px 10px", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-hanken), sans-serif" }}>
                       {showPassword ? "verbergen" : "zeigen"}
                     </button>
                   </div>
