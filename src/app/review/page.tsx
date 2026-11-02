@@ -81,6 +81,12 @@ export default async function ReviewPage() {
   const passRateLabel = scored.length > 0 ? `${Math.round((passedCount / scored.length) * 100)}%` : "–";
   const attemptCount = scored.length;
 
+  const { data: sources } = await supabase
+    .from("signup_source_stats")
+    .select("source, signups, active, pro")
+    .order("signups", { ascending: false })
+    .returns<{ source: string; signups: number; active: number; pro: number }[]>();
+
   const { data: reports } = await supabase
     .from("question_reports")
     .select("id, message, created_at, questions(question_text)")
@@ -111,6 +117,34 @@ export default async function ReviewPage() {
             </div>
           ))}
         </div>
+
+        {(sources ?? []).length > 0 && (
+          <section style={{ marginBottom: "32px" }}>
+            <h2 style={{ ...heading, fontWeight: 600, fontSize: "20px", margin: "0 0 12px" }}>Herkunft der Anmeldungen</h2>
+            <div style={{ overflowX: "auto", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14.5px" }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: "var(--muted)" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: 600 }}>Quelle</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600 }}>Anmeldungen</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600 }}>Haben geübt</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600 }}>Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sources!.map((s) => (
+                    <tr key={s.source} style={{ borderTop: "1px solid var(--border)" }}>
+                      <td style={{ padding: "10px 16px" }}>{s.source}</td>
+                      <td style={{ padding: "10px 16px" }}>{s.signups}</td>
+                      <td style={{ padding: "10px 16px" }}>{s.active}</td>
+                      <td style={{ padding: "10px 16px" }}>{s.pro}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {(reports ?? []).length > 0 && (
           <section style={{ marginBottom: "32px" }}>

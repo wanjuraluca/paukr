@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { sourceFrom } from "@/lib/signup-source";
 
 const PRODUCT_NAME = "paukr";
 
@@ -60,7 +61,10 @@ export default function LandingClient({
 
   const isDark = theme === "dark";
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-  const goToApp = () => router.push("/app");
+  const goToApp = () => {
+    const source = sourceFrom(new URLSearchParams(window.location.search));
+    router.push(source ? `/app?src=${source}` : "/app");
+  };
   const goToUpgrade = () => router.push("/upgrade");
 
   const heading: CSSProperties = {
@@ -714,6 +718,7 @@ export default function LandingClient({
             {[
               { label: "Features", href: "#features" },
               { label: "Preise", href: "#pricing" },
+              { label: "Prüfungen", href: "/pruefungen" },
               { label: "Nutzungsbedingungen", href: "/agb" },
               { label: "Datenschutz", href: "/datenschutz" },
               { label: "Impressum", href: "/impressum" },

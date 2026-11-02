@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/safe-next";
+import { sourceFrom } from "@/lib/signup-source";
 import { createClient } from "@/lib/supabase/client";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
@@ -24,10 +25,14 @@ export default function AuthClient() {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
+  const source = sourceFrom(params);
   const supabase = createClient();
+  const callbackUrl = () =>
+    `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}${source ? `&src=${source}` : ""}`;
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [isLogin, setIsLogin] = useState(true);
+  // A marked link comes from an ad or a public page, so most likely a new user.
+  const [isLogin, setIsLogin] = useState(!source);
   const [forgotMode, setForgotMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +64,7 @@ export default function AuthClient() {
           password,
           options: {
             data: { display_name: displayName },
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+            emailRedirectTo: callbackUrl(),
           },
         });
         if (error) setError(friendlyError(error.message));
@@ -94,7 +99,7 @@ export default function AuthClient() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: callbackUrl(),
       },
     });
     if (error) setError(friendlyError(error.message));

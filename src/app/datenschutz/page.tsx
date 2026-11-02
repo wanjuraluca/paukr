@@ -51,6 +51,12 @@ export default function DatenschutzPage() {
         deinen Text, die Frage und dein Konto, um den Fehler zu prüfen (Art. 6 Abs. 1 lit. f DSGVO).
       </p>
       <p>
+        <strong style={strong}>Herkunft der Anmeldung.</strong> Kommst du über einen markierten Link, zum Beispiel aus einer
+        Anzeige oder von einer unserer Prüfungsseiten, und legst ein Konto an, speichern wir bei deinem Konto die Quelle aus
+        dem Link. So sehen wir, welche Werbung sich lohnt. Dafür setzen wir kein Cookie und geben nichts an Werbeplattformen
+        weiter (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+      <p>
         <strong style={strong}>E-Mails.</strong> Wir senden dir nur Mails, die zum Konto oder Vertrag gehören, zum Beispiel
         Kontobestätigung, Passwort zurücksetzen, Vertragsbestätigung oder Eingangsbestätigungen. Werbung versenden wir nicht.
       </p>
@@ -77,7 +83,7 @@ export default function DatenschutzPage() {
       <h2 style={h2}>4. Cookies und Speicherung auf deinem Gerät</h2>
       <p>
         Wir setzen nur technisch notwendige Cookies ein, die dich nach dem Login angemeldet halten. Rechtsgrundlage ist
-        § 25 Abs. 2 Nr. 2 TDDDG, eine Einwilligung ist dafür nicht nötig. Es gibt kein Tracking, keine Analyse-Tools und
+        § 25 Abs. 2 Nr. 2 TDDDG, eine Einwilligung ist dafür nicht nötig. Es gibt keine Analyse-Tools, keine Tracking-Pixel und
         keine Werbe-Cookies, deshalb auch kein Cookie-Banner. Schriftarten liefern wir von unserem eigenen Server aus. Auf
         den Seiten von Stripe gelten beim Bezahlen die Regeln von Stripe.
       </p>
