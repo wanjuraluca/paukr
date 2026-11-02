@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     locale: "de_DE",
     type: "website",
   },
+  verification: { google: "B_0XLV9R-DcM10O0bZ5XOqQFS1KHL56NPGHrv_Gbskg" },
 };
 
 // Colours the phone's browser bar to match the page in light and dark mode.
