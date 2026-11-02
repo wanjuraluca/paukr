@@ -304,7 +304,7 @@ export default function LandingClient({
               textWrap: "pretty",
             }}
           >
-            Wähle deine Prüfung, übe mit echten Fragen und einer realistischen Simulation - und
+            Wähle deine Prüfung, übe mit eigenen Übungsfragen und einer Simulation mit Zeitlimit - und
             sammle XP, während du besser wirst. Strukturiert, motivierend, ohne Ballast.
           </p>
           <div
@@ -497,7 +497,7 @@ export default function LandingClient({
         <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 56px", textAlign: "center" }}>
           <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Features</span>
           <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 14px", lineHeight: 1.1 }}>
-            Alles, was du zum Bestehen brauchst
+            Alles, was du zum Üben brauchst
           </h2>
           <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, textWrap: "pretty" }}>
             Kein Feature-Wust. Nur die Werkzeuge, die dich wirklich weiterbringen.
@@ -536,8 +536,8 @@ export default function LandingClient({
                   <path d="M12 7.5V12l3 2" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ),
-              title: "Realistische Simulation",
-              body: "Übe unter echten Prüfungsbedingungen: Zeitlimit, Fragenmix und ehrliche Auswertung.",
+              title: "Prüfungssimulation",
+              body: "Übe mit Zeitlimit und Fragenmix, ausgewertet wird am Ende. Umfang und Zeit legen wir selbst fest, sie entsprechen nicht der echten Prüfung.",
             },
             {
               delay: ".24s",
@@ -581,13 +581,13 @@ export default function LandingClient({
           <div style={{ animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both", maxWidth: "640px", margin: "0 auto 60px", textAlign: "center" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>So funktioniert&apos;s</span>
             <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,3.6vw,44px)", letterSpacing: "-.025em", margin: "12px 0 0", lineHeight: 1.1 }}>
-              In drei Schritten zur bestandenen Prüfung
+              In drei Schritten vorbereitet
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "28px" }}>
             {[
               { delay: "0s", num: "01", title: "Prüfung wählen", body: "Such dir deine Prüfung aus dem Katalog. Der Rest wird passgenau für dich vorbereitet." },
-              { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich durch Fragen und volle Simulationen, in deinem Tempo, mit sofortigem Feedback." },
+              { delay: ".12s", num: "02", title: "Üben & simulieren", body: "Arbeite dich in deinem Tempo durch die Fragen und teste dich in Simulationen mit Zeitlimit." },
               { delay: ".24s", num: "03", title: "Vorbereitet reingehen", body: "Du siehst, welche Themen schon sitzen und wo du noch üben solltest. Bestehen musst du die Prüfung am Ende selbst." },
             ].map((s) => (
               <div key={s.num} style={{ animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${s.delay} both` }}>

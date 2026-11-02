@@ -1109,7 +1109,7 @@ export default function AppClient({
           <div style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) both", marginBottom: "36px" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--accent-strong)" }}>Prüfungsvorbereitung</span>
             <h1 style={{ ...heading, fontWeight: 700, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em", margin: "8px 0 12px", lineHeight: 1.05 }}>{examName}</h1>
-            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder unter echten Bedingungen simulieren."}</p>
+            <p style={{ fontSize: "18px", color: "var(--muted)", margin: 0, maxWidth: "600px" }}>{activeExam.description || "Bereite dich gezielt vor: Themen üben oder dich in einer Simulation mit Zeitlimit testen."}</p>
           </div>
           <div className="pk-app-stats" style={{ animation: "pk-revUp .6s cubic-bezier(.16,1,.3,1) .06s both", display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "14px", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "24px 28px", marginBottom: "26px" }}>
             <div style={{ position: "relative", width: "96px", height: "96px" }}>
