@@ -17,13 +17,13 @@ const CONTENT_WIDTH = 830;
 const TOP = 230;
 
 const COLORS = {
-  bg: "#0f1118",
-  surface: "#171a24",
-  border: "#2a2e3d",
-  text: "#eef0f7",
-  muted: "#9a9fb0",
-  accent: "#6193ff",
-  onAccent: "#0c0d13",
+  bg: "#161612",
+  surface: "#22231d",
+  border: "#34372e",
+  text: "#f6f1e7",
+  muted: "#adb0a3",
+  accent: "#7f93ff",
+  onAccent: "#0d0f1c",
 };
 
 for (const [family, pkg, weights] of [
