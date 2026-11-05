@@ -92,8 +92,8 @@ export default function LandingClient({
           position: "sticky",
           top: 0,
           zIndex: 50,
-          backdropFilter: "saturate(180%) blur(14px)",
-          background: "color-mix(in oklch, var(--bg) 78%, transparent)",
+          backdropFilter: "blur(14px)",
+          background: "color-mix(in srgb, var(--bg) 78%, transparent)",
           borderBottom: "1px solid var(--border)",
         }}
       >

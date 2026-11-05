@@ -22,7 +22,7 @@ export default function LegalShell({ children }: { children: React.ReactNode }) 
       data-accent="indigo"
       style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100dvh", transition: "background .3s ease, color .3s ease" }}
     >
-      <header style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in srgb, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "var(--text)" }}>
             <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />

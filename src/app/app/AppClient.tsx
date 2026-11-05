@@ -921,7 +921,7 @@ export default function AppClient({
             top: 0,
             zIndex: 50,
             backdropFilter: "saturate(180%) blur(14px)",
-            background: "color-mix(in oklch, var(--bg) 78%, transparent)",
+            background: "color-mix(in srgb, var(--bg) 78%, transparent)",
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -1316,7 +1316,7 @@ export default function AppClient({
       {/* ===== SCREEN 3: PRACTICE ===== */}
       {screen === "practice" && (
         <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in srgb, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
             <div style={{ height: "4px", background: "var(--bg-alt)" }}>
               <div style={{ width: practicePct, height: "100%", background: "var(--accent)", transition: "width .5s cubic-bezier(.16,1,.3,1)" }} />
             </div>
@@ -1519,7 +1519,7 @@ export default function AppClient({
           {confirmSimExit && (
             <div
               onClick={() => setConfirmSimExit(false)}
-              style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", padding: "20px", background: "color-mix(in oklch, var(--bg) 60%, transparent)", backdropFilter: "blur(6px)" }}
+              style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", padding: "20px", background: "color-mix(in srgb, var(--bg) 60%, transparent)", backdropFilter: "blur(6px)" }}
             >
               <div
                 role="alertdialog"
@@ -1632,7 +1632,7 @@ export default function AppClient({
       {/* ===== SCREEN 6: BLITZ RUN ===== */}
       {screen === "blitz" && (
         <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in oklch, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 40, background: "color-mix(in srgb, var(--bg) 82%, transparent)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
             <div className="pk-app-bar" style={{ maxWidth: "820px", margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", minWidth: "128px" }}>
                 <span

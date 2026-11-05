@@ -14,13 +14,13 @@ export default function OpengraphImage() {
         flexDirection: "column",
         justifyContent: "center",
         padding: "90px",
-        background: "#0c0d13",
-        color: "#ffffff",
+        background: "#fbf6ee",
+        color: "#1b1e1a",
       }}
     >
-      <div style={{ fontSize: 110, fontWeight: 700, color: "#6193ff" }}>paukr</div>
+      <div style={{ fontSize: 110, fontWeight: 700, color: "#2f4bff" }}>paukr</div>
       <div style={{ fontSize: 50, marginTop: 24 }}>Lernen, üben, Prüfung simulieren.</div>
-      <div style={{ fontSize: 32, marginTop: 24, color: "#9a9fb0" }}>Übungsfragen für deine Ausbildung. Kostenlos starten.</div>
+      <div style={{ fontSize: 32, marginTop: 24, color: "#555b52" }}>Übungsfragen für deine Ausbildung. Kostenlos starten.</div>
     </div>,
     size,
   );

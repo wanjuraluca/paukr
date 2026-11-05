@@ -68,7 +68,7 @@ export function SkelHeader() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        background: "color-mix(in oklch, var(--bg) 78%, transparent)",
+        background: "color-mix(in srgb, var(--bg) 78%, transparent)",
         borderBottom: "1px solid var(--border)",
       }}
     >
