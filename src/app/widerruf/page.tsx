@@ -1,12 +1,17 @@
 import type { CSSProperties } from "react";
 import LegalShell from "../legal/LegalShell";
 import { MODEL_FORM_LINES, WITHDRAWAL_SECTIONS } from "@/lib/legal-texts";
+import { pageMetadata } from "@/lib/seo";
 import RequestForm from "./RequestForm";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 const h2: CSSProperties = { ...heading, fontWeight: 600, fontSize: "18px", margin: "36px 0 10px" };
 
-export const metadata = { title: "Vertrag widerrufen · paukr" };
+export const metadata = pageMetadata({
+  title: "Vertrag widerrufen | paukr",
+  description: "Widerrufsbelehrung und Formular für deinen Vertrag mit paukr. Du kannst den Widerruf auch ohne Anmeldung erklären.",
+  path: "/widerruf",
+});
 
 export default function WiderrufPage() {
   return (

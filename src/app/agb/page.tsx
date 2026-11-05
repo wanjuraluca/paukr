@@ -1,11 +1,16 @@
 import type { CSSProperties } from "react";
 import LegalShell from "../legal/LegalShell";
+import { pageMetadata } from "@/lib/seo";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 const h2: CSSProperties = { ...heading, fontWeight: 600, fontSize: "18px", margin: "36px 0 10px" };
 const link: CSSProperties = { color: "var(--accent-strong)" };
 
-export const metadata = { title: "Nutzungsbedingungen · paukr" };
+export const metadata = pageMetadata({
+  title: "Nutzungsbedingungen | paukr",
+  description: "Die Nutzungsbedingungen von paukr: Vertragsschluss, Leistungen von Free und Pro, Laufzeit, Kündigung und Haftung.",
+  path: "/agb",
+});
 
 export default function AgbPage() {
   return (

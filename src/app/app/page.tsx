@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import AppClient, { type ExamBundle } from "./AppClient";
 import { FREE_TRY_LIMIT, PROBE_SIM_SECONDS } from "@/lib/limits";
+import { noindexMetadata } from "@/lib/seo";
 import { liveStreak } from "@/lib/streak";
 
 export const dynamic = "force-dynamic";
+export const metadata = noindexMetadata("Lernen | paukr");
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();

@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { noindexMetadata } from "@/lib/seo";
 import ResetPasswordClient from "./ResetPasswordClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = noindexMetadata("Passwort zurücksetzen | paukr");
 
 // The recovery link (via /auth/callback) exchanges its code for a session
 // before landing here, so a missing session means this page was opened

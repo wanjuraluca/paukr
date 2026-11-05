@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSubscriptionInfo } from "@/lib/subscription";
+import { noindexMetadata } from "@/lib/seo";
 import UpgradeClient from "./UpgradeClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = noindexMetadata("paukr Pro holen | paukr");
 
 export default async function UpgradePage() {
   const supabase = await createClient();

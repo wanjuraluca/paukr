@@ -1,9 +1,14 @@
 import type { CSSProperties } from "react";
 import LegalShell from "../legal/LegalShell";
+import { pageMetadata } from "@/lib/seo";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 
-export const metadata = { title: "Impressum · paukr" };
+export const metadata = pageMetadata({
+  title: "Impressum | paukr",
+  description: "Anbieterkennzeichnung von paukr nach § 5 DDG mit Kontaktdaten und dem Hinweis, dass paukr unabhängig von den Prüfungsstellen ist.",
+  path: "/impressum",
+});
 
 export default function ImpressumPage() {
   return (

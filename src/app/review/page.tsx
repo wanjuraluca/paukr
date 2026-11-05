@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { noindexMetadata } from "@/lib/seo";
 import ReviewShell from "./ReviewShell";
 import {
   approveQuestion,
@@ -11,6 +12,7 @@ import {
 } from "./actions";
 
 export const dynamic = "force-dynamic";
+export const metadata = noindexMetadata("Fragen-Review | paukr");
 
 interface ReviewQuestion {
   id: string;

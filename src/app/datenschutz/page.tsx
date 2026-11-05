@@ -1,12 +1,17 @@
 import type { CSSProperties } from "react";
 import LegalShell from "../legal/LegalShell";
+import { pageMetadata } from "@/lib/seo";
 
 const heading: CSSProperties = { fontFamily: "var(--font-space), sans-serif" };
 const h2: CSSProperties = { ...heading, fontWeight: 600, fontSize: "18px", margin: "36px 0 10px" };
 const strong: CSSProperties = { color: "var(--text)" };
 const mail = <a href="mailto:info@paukr.app" style={{ color: "var(--accent-strong)" }}>info@paukr.app</a>;
 
-export const metadata = { title: "Datenschutz · paukr" };
+export const metadata = pageMetadata({
+  title: "Datenschutzerklärung | paukr",
+  description: "Welche Daten paukr verarbeitet, warum und wie lange, welche Dienstleister beteiligt sind und welche Rechte du hast.",
+  path: "/datenschutz",
+});
 
 export default function DatenschutzPage() {
   return (
@@ -52,7 +57,7 @@ export default function DatenschutzPage() {
       </p>
       <p>
         <strong style={strong}>Herkunft der Anmeldung.</strong> Kommst du über einen markierten Link, zum Beispiel aus einer
-        Anzeige oder von einer unserer Prüfungsseiten, und legst ein Konto an, speichern wir bei deinem Konto die Quelle aus
+        Anzeige oder von einer unserer öffentlichen Seiten, und legst ein Konto an, speichern wir bei deinem Konto die Quelle aus
         dem Link. So sehen wir, welche Werbung sich lohnt. Dafür setzen wir kein Cookie und geben nichts an Werbeplattformen
         weiter (Art. 6 Abs. 1 lit. f DSGVO).
       </p>

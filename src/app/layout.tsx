@@ -17,15 +17,6 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.paukr.app"),
   title: "paukr: Übungsfragen zur Prüfungsvorbereitung",
-  description: "Lerne mit eigenen Übungsfragen, Wiederholung nach Lernstand und Simulationen für deine Abschlussprüfung. Kostenlos starten.",
-  openGraph: {
-    title: "paukr: Übungsfragen zur Prüfungsvorbereitung",
-    description: "Lernen, üben, Prüfung simulieren. Kostenlos starten.",
-    url: "/",
-    siteName: "paukr",
-    locale: "de_DE",
-    type: "website",
-  },
   verification: { google: "B_0XLV9R-DcM10O0bZ5XOqQFS1KHL56NPGHrv_Gbskg" },
 };
 

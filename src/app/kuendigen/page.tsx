@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSubscriptionInfo, isProStatus } from "@/lib/subscription";
+import { pageMetadata } from "@/lib/seo";
 import LegalShell from "../legal/LegalShell";
 import KuendigenClient, { type CancelView } from "./KuendigenClient";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Verträge hier kündigen · paukr" };
+export const metadata = pageMetadata({
+  title: "Verträge hier kündigen | paukr",
+  description: "Hier kündigst du dein Pro-Abo bei paukr, auch ohne Anmeldung. Du bekommst eine Eingangsbestätigung per E-Mail.",
+  path: "/kuendigen",
+});
 
 export default async function KuendigenPage() {
   const supabase = await createClient();

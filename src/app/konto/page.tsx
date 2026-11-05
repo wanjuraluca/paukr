@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { noindexMetadata } from "@/lib/seo";
 import LegalShell from "../legal/LegalShell";
 import KontoClient from "./KontoClient";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Dein Konto · paukr" };
+export const metadata = noindexMetadata("Dein Konto | paukr");
 
 export default async function KontoPage() {
   const supabase = await createClient();
