@@ -48,6 +48,53 @@ export async function loadPublicExams(): Promise<PublicExam[]> {
   }));
 }
 
+// Search titles have about 60 characters, some official names don't fit.
+const SHORT_NAMES: Record<string, string> = {
+  "fiae-ae": "Fachinformatiker Anwendungsentwicklung",
+  fisi: "Fachinformatiker Systemintegration",
+  bueromanagement: "Kaufleute für Büromanagement",
+  einzelhandel: "Kaufleute im Einzelhandel",
+  grosshandel: "Kaufleute Groß- und Außenhandel",
+  mfa: "Medizinische Fachangestellte",
+  bank: "Bankkaufleute",
+};
+
+export function shortExamName(exam: { slug: string; name: string }): string {
+  return SHORT_NAMES[exam.slug] ?? exam.name;
+}
+
+// Questions chosen by hand for a content page, so they fit its subject. Only
+// these keys are shown, a key that was withdrawn simply drops out.
+export async function loadTopicSamples(
+  examSlug: string,
+  picks: { topic: string; keys: string[] }[],
+): Promise<(SampleQuestion & { topic: string })[]> {
+  const supabase = anonClient();
+  if (!supabase) return [];
+  const exam = (await loadPublicExams()).find((e) => e.slug === examSlug);
+  if (!exam) return [];
+  const perPick = await Promise.all(
+    picks.map(async (pick) => {
+      const topic = exam.topics.find((t) => t.name === pick.topic);
+      if (!topic) return [];
+      const { data } = await supabase
+        .from("questions")
+        .select("id, question_text, explanation, answer_options(id, option_text, is_correct)")
+        .eq("topic_id", topic.id)
+        .eq("question_type", "single")
+        .in("source_key", pick.keys)
+        .order("source_key")
+        .returns<SampleQuestion[]>();
+      return (data ?? []).map((q) => ({
+        ...q,
+        topic: topic.name,
+        answer_options: q.answer_options.slice().sort((a, b) => a.option_text.localeCompare(b.option_text, "de")),
+      }));
+    }),
+  );
+  return perPick.flat();
+}
+
 // Two questions per topic. Sorted by source_key so the page text stays the same
 // between builds, options sorted by text so the position says nothing.
 export async function loadSampleQuestions(exam: PublicExam): Promise<(SampleQuestion & { topic: string })[]> {

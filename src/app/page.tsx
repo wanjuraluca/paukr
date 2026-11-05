@@ -1,11 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
-import LandingClient from "./LandingClient";
+import { loadPublicExams, questionCount as countQuestions } from "@/lib/public-exams";
+import { pageMetadata } from "@/lib/seo";
+import Landing from "./Landing";
 
 // The landing page shows how many questions and exams are live. It reads them
 // from the database instead of a hand-kept constant, so the numbers stay true
 // when questions are approved, withdrawn or a new exam is added. Refreshed at
 // most once an hour, so visitors still get a cached page.
 export const revalidate = 3600;
+
+export const metadata = pageMetadata({
+  title: "Übungsfragen für die IHK-Abschlussprüfung üben | paukr",
+  description: "Übe für deine Abschlussprüfung mit eigenen Fragen, Erklärungen und Simulationen. Für Fachinformatiker und weitere Berufe. Kostenlos starten.",
+  path: "/",
+});
 
 // Used only if the database cannot be reached while the page is built.
 const FALLBACK = { questionCount: 2700, examCount: 9 };
@@ -33,6 +41,12 @@ async function liveCounts(): Promise<{ questionCount: number; examCount: number 
 }
 
 export default async function Home() {
-  const { questionCount, examCount } = await liveCounts();
-  return <LandingClient questionCount={questionCount} examCount={examCount} />;
+  const [{ questionCount, examCount }, exams] = await Promise.all([liveCounts(), loadPublicExams()]);
+  return (
+    <Landing
+      questionCount={questionCount}
+      examCount={examCount}
+      exams={exams.map((e) => ({ slug: e.slug, name: e.name, count: countQuestions(e) }))}
+    />
+  );
 }

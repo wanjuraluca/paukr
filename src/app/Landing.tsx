@@ -1,10 +1,11 @@
-"use client";
-
-import { useEffect, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
-import { sourceFrom } from "@/lib/signup-source";
-
-const PRODUCT_NAME = "paukr";
+import type { CSSProperties } from "react";
+import Link from "next/link";
+import AppLink from "@/components/site/AppLink";
+import JsonLd from "@/components/site/JsonLd";
+import SiteFooter from "@/components/site/SiteFooter";
+import SiteHeader from "@/components/site/SiteHeader";
+import { ThemeRoot } from "@/components/site/Theme";
+import { organization, softwareApplication, website } from "@/lib/structured-data";
 
 // Rounded down to the nearest 10 with a "+", so it reads honestly even as
 // the exact count shifts (e.g. 43 -> "40+", not a number that looks fake-precise).
@@ -43,39 +44,23 @@ function CheckItem({ text, filled }: { text: string; filled: boolean }) {
   );
 }
 
-export default function LandingClient({
+export default function Landing({
   questionCount,
   examCount,
+  exams,
 }: {
   questionCount: number;
   examCount: number;
+  exams: { slug: string; name: string; count: number }[];
 }) {
-  const router = useRouter();
   const QUESTION_COUNT_LABEL = questionCountLabel(questionCount);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-    setTheme(dark ? "dark" : "light");
-  }, []);
-
-  const isDark = theme === "dark";
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-  const goToApp = () => {
-    const source = sourceFrom(new URLSearchParams(window.location.search));
-    router.push(source ? `/app?src=${source}` : "/app");
-  };
-  const goToUpgrade = () => router.push("/upgrade");
 
   const heading: CSSProperties = {
     fontFamily: "var(--font-space), sans-serif",
   };
 
   return (
-    <div
-      className="eh"
-      data-theme={theme}
-      data-accent="indigo"
+    <ThemeRoot
       style={{
         background: "var(--bg)",
         color: "var(--text)",
@@ -86,144 +71,11 @@ export default function LandingClient({
         lineHeight: 1.6,
       }}
     >
-      {/* ===== NAV ===== */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          backdropFilter: "blur(14px)",
-          background: "color-mix(in srgb, var(--bg) 78%, transparent)",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: "14px 28px",
-            display: "flex",
-            alignItems: "center",
-            gap: "32px",
-          }}
-        >
-          <a
-            href="#top"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              textDecoration: "none",
-              color: "var(--text)",
-              marginRight: "auto",
-            }}
-          >
-            <img
-              src="/logo.svg"
-              width={30}
-              height={30}
-              alt=""
-              style={{ borderRadius: "9px", boxShadow: "0 4px 14px color-mix(in oklch, var(--accent) 40%, transparent)" }}
-            />
-            <span style={{ ...heading, fontWeight: 700, fontSize: "20px", letterSpacing: "-.02em" }}>
-              {PRODUCT_NAME}
-            </span>
-          </a>
-          <div className="pk-nav-links" style={{ display: "flex", alignItems: "center", gap: "28px", marginRight: "auto" }}>
-            <a
-              href="#features"
-              className="pk-navlink"
-              style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
-            >
-              Features
-            </a>
-            <a
-              href="#how"
-              className="pk-navlink"
-              style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
-            >
-              So funktioniert&apos;s
-            </a>
-            <a
-              href="#pricing"
-              className="pk-navlink"
-              style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, fontSize: "15px", padding: "8px 2px", transition: "color .2s" }}
-            >
-              Preise
-            </a>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <button
-              onClick={toggleTheme}
-              aria-label="Modus wechseln"
-              className="pk-theme-btn"
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "11px",
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                color: "var(--text)",
-                cursor: "pointer",
-                display: "grid",
-                placeItems: "center",
-                transition: "transform .18s, border-color .2s, background .3s",
-              }}
-            >
-              {isDark ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
-                  <path
-                    d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </button>
-            <button
-              onClick={goToApp}
-              className="pk-btn-accent pk-cta-btn-nav"
-              style={{
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "var(--font-hanken), sans-serif",
-                fontWeight: 600,
-                fontSize: "15px",
-                padding: "11px 20px",
-                borderRadius: "12px",
-                background: "var(--accent)",
-                color: "var(--on-accent)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                boxShadow: "0 6px 20px color-mix(in oklch, var(--accent) 32%, transparent)",
-                transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s",
-              }}
-            >
-              <span className="pk-cta-label">Kostenlos starten</span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <div id="top" />
-
+      <JsonLd data={[organization(), website(), softwareApplication()]} />
+      <SiteHeader />
+      <main>
       {/* ===== HERO ===== */}
-      <header
+      <section
         className="pk-hero-grid"
         style={{
           position: "relative",
@@ -254,7 +106,6 @@ export default function LandingClient({
         <div style={{ position: "relative", zIndex: 1 }}>
           <div
             style={{
-              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) 0s both",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
@@ -284,22 +135,18 @@ export default function LandingClient({
           <h1
             style={{
               ...heading,
-              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .06s both",
               fontWeight: 700,
-              fontSize: "clamp(40px,5.4vw,66px)",
+              fontSize: "clamp(36px,4.8vw,58px)",
               lineHeight: 1.03,
               letterSpacing: "-.03em",
               margin: "0 0 22px",
               textWrap: "balance",
             }}
           >
-            Lernen, das sich endlich
-            <br />
-            nicht wie <span style={{ color: "var(--accent)" }}>Lernen</span> anfühlt.
+            Übungsfragen für deine Abschlussprüfung, die sich nicht wie <span style={{ color: "var(--accent)" }}>Lernen</span> anfühlen.
           </h1>
           <p
             style={{
-              animation: "pk-revUp .7s cubic-bezier(.16,1,.3,1) .12s both",
               fontSize: "19px",
               color: "var(--muted)",
               maxWidth: "500px",
@@ -308,8 +155,7 @@ export default function LandingClient({
               textWrap: "pretty",
             }}
           >
-            Wähle deine Prüfung, übe mit eigenen Übungsfragen und einer Simulation mit Zeitlimit - und
-            sammle XP, während du besser wirst. Strukturiert, motivierend, ohne Ballast.
+            Für Fachinformatiker Anwendungsentwicklung und {examCount - 1} weitere Ausbildungsberufe: Wähle deine Prüfung, übe mit eigenen Fragen und einer Simulation mit Zeitlimit und sammle dabei XP.
           </p>
           <div
             style={{
@@ -320,13 +166,9 @@ export default function LandingClient({
               alignItems: "center",
             }}
           >
-            <button
-              onClick={goToApp}
+            <AppLink
               className="pk-btn-accent-lg"
               style={{
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "var(--font-hanken), sans-serif",
                 fontWeight: 600,
                 fontSize: "16px",
                 padding: "15px 26px",
@@ -344,13 +186,12 @@ export default function LandingClient({
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </button>
-            <button
-              onClick={goToApp}
+            </AppLink>
+            <Link
+              href="/pruefungen"
               className="pk-btn-ghost"
               style={{
-                cursor: "pointer",
-                fontFamily: "var(--font-hanken), sans-serif",
+                textDecoration: "none",
                 fontWeight: 600,
                 fontSize: "16px",
                 padding: "15px 24px",
@@ -364,12 +205,8 @@ export default function LandingClient({
                 transition: "transform .2s, border-color .2s, background .3s",
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
-                <path d="M10 8.5l6 3.5-6 3.5V8.5Z" fill="currentColor" />
-              </svg>
-              Demo ansehen
-            </button>
+              Beispielfragen ansehen
+            </Link>
           </div>
           <div
             style={{
@@ -494,7 +331,24 @@ export default function LandingClient({
             </div>
           </div>
         </div>
-      </header>
+      </section>
+
+      {/* ===== EXAMS ===== */}
+      <section id="pruefungen" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 28px 40px" }}>
+        <h2 style={{ ...heading, fontWeight: 700, fontSize: "clamp(26px,3vw,36px)", letterSpacing: "-.02em", margin: "0 0 8px" }}>Für welche Prüfung übst du?</h2>
+        <p style={{ color: "var(--muted)", margin: "0 0 24px", maxWidth: "640px" }}>
+          Zu jedem Beruf findest du die Themen und Beispielfragen mit Lösung, ganz ohne Anmeldung. Für Fachinformatiker Anwendungsentwicklung erklären wir außerdem den{" "}
+          <Link href="/fachinformatiker-anwendungsentwicklung" style={{ color: "var(--accent-strong)", textDecoration: "underline", textUnderlineOffset: "2px" }}>Aufbau der Prüfung mit AP1 und AP2</Link>.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "12px" }}>
+          {exams.map((exam) => (
+            <Link key={exam.slug} href={`/pruefungen/${exam.slug}`} className="pk-exam-card" style={{ display: "block", padding: "16px 18px", borderRadius: "14px", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", textDecoration: "none", transition: "transform .2s, border-color .2s" }}>
+              <span style={{ display: "block", fontWeight: 600 }}>{exam.name}</span>
+              <span style={{ display: "block", fontSize: "14px", color: "var(--muted)" }}>{exam.count.toLocaleString("de-DE")} Übungsfragen</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* ===== FEATURES ===== */}
       <section id="features" style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 28px" }}>
@@ -557,11 +411,8 @@ export default function LandingClient({
             <div
               key={f.title}
               className="pk-feature-card"
-              onAnimationEnd={(e) => {
-                e.currentTarget.style.animation = "none";
-              }}
               style={{
-                animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${f.delay} both`,
+                animation: `pk-revUp .7s cubic-bezier(.16,1,.3,1) ${f.delay} backwards`,
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
                 borderRadius: "20px",
@@ -642,18 +493,17 @@ export default function LandingClient({
                 <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>0 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat</span>
               </div>
-              <button
-                onClick={goToApp}
+              <AppLink
                 className="pk-price-btn-ghost"
-                style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
+                style={{ display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", width: "100%", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", transition: "transform .18s, border-color .2s" }}
               >
                 Kostenlos starten
-              </button>
+              </AppLink>
               <div style={{ height: "1px", background: "var(--border)", margin: "26px 0" }} />
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "14px", fontSize: "15px" }}>
                 <CheckItem text="Alle Fragen und Themen" filled={false} />
                 <CheckItem text="3 kostenlose Lernsitzungen pro Prüfung" filled={false} />
-                <CheckItem text="XP & Fortschritts-Tracking" filled={false} />
+                <CheckItem text="XP und Fortschritt" filled={false} />
               </ul>
             </div>
             {/* Pro */}
@@ -664,13 +514,13 @@ export default function LandingClient({
                 <span style={{ ...heading, fontWeight: 700, fontSize: "44px", letterSpacing: "-.02em" }}>9,99 €</span>
                 <span style={{ color: "var(--muted)", fontSize: "15px" }}>/ Monat (Endpreis)</span>
               </div>
-              <button
-                onClick={goToUpgrade}
+              <Link
+                href="/upgrade"
                 className="pk-price-btn-accent"
-                style={{ width: "100%", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", border: "none", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
+                style={{ display: "block", boxSizing: "border-box", textAlign: "center", textDecoration: "none", width: "100%", fontWeight: 600, fontSize: "15.5px", padding: "13px", borderRadius: "13px", background: "var(--accent)", color: "var(--on-accent)", boxShadow: "0 8px 22px color-mix(in oklch, var(--accent) 34%, transparent)", transition: "transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
               >
                 Pro holen
-              </button>
+              </Link>
               <div style={{ height: "1px", background: "var(--border)", margin: "26px 0" }} />
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "14px", fontSize: "15px" }}>
                 <CheckItem text="Alle Fragen und Themen" filled />
@@ -693,50 +543,21 @@ export default function LandingClient({
             <p style={{ fontSize: "19px", color: "var(--muted)", margin: "0 auto 34px", maxWidth: "520px", textWrap: "pretty" }}>
               Leg in unter einer Minute los, kostenlos, ohne Kreditkarte.
             </p>
-            <button
-              onClick={goToApp}
+            <AppLink
               className="pk-cta-btn"
-              style={{ border: "none", cursor: "pointer", fontFamily: "var(--font-hanken), sans-serif", fontWeight: 600, fontSize: "17px", padding: "16px 30px", borderRadius: "16px", background: "var(--accent)", color: "var(--on-accent)", display: "inline-flex", alignItems: "center", gap: "10px", boxShadow: "0 10px 30px color-mix(in oklch, var(--accent) 38%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
+              style={{ fontWeight: 600, fontSize: "17px", padding: "16px 30px", borderRadius: "16px", background: "var(--accent)", color: "var(--on-accent)", display: "inline-flex", alignItems: "center", gap: "10px", boxShadow: "0 10px 30px color-mix(in oklch, var(--accent) 38%, transparent)", transition: "transform .2s cubic-bezier(.2,.9,.3,1.3), box-shadow .25s" }}
             >
               Jetzt kostenlos starten
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </button>
+            </AppLink>
           </div>
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
-      <footer style={{ borderTop: "1px solid var(--border)", background: "var(--bg-alt)", transition: "background .5s" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "48px 28px", display: "flex", flexWrap: "wrap", gap: "28px", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img src="/logo.svg" width={28} height={28} alt="" style={{ borderRadius: "8px" }} />
-            <span style={{ ...heading, fontWeight: 700, fontSize: "18px", letterSpacing: "-.02em" }}>{PRODUCT_NAME}</span>
-          </div>
-          <div className="pk-footer-links" style={{ display: "flex", flexWrap: "wrap", gap: "26px", fontSize: "15px" }}>
-            {[
-              { label: "Features", href: "#features" },
-              { label: "Preise", href: "#pricing" },
-              { label: "Prüfungen", href: "/pruefungen" },
-              { label: "Nutzungsbedingungen", href: "/agb" },
-              { label: "Datenschutz", href: "/datenschutz" },
-              { label: "Impressum", href: "/impressum" },
-              { label: "Verträge hier kündigen", href: "/kuendigen" },
-              { label: "Vertrag widerrufen", href: "/widerruf" },
-            ].map((l) => (
-              <a key={l.label} href={l.href} className="pk-footer-link" style={{ textDecoration: "none", color: "var(--muted)", fontWeight: 500, transition: "color .2s" }}>
-                {l.label}
-              </a>
-            ))}
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
-          paukr ist ein unabhängiges Übungsangebot ohne Verbindung zu den Industrie- und Handelskammern, der DIHK, der AkA oder der ZPA. Alle Fragen sind eigene Übungsfragen, keine Original-Prüfungsaufgaben. Keine Bestehensgarantie.
-          <br />
-          © 2026 {PRODUCT_NAME}. Alle Rechte vorbehalten.
-        </div>
-      </footer>
-    </div>
+      </main>
+      <SiteFooter />
+    </ThemeRoot>
   );
 }
