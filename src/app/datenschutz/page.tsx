@@ -62,6 +62,13 @@ export default function DatenschutzPage() {
         weiter (Art. 6 Abs. 1 lit. f DSGVO).
       </p>
       <p>
+        <strong style={strong}>Reichweitenmessung.</strong> Wir nutzen Vercel Web Analytics, um zu sehen, welche Seiten wie oft
+        aufgerufen werden. Dafür werden beim Seitenaufruf Nutzungsdaten wie die aufgerufene Seite und die vorherige Seite an
+        Vercel übermittelt. Es werden keine Cookies gesetzt. Besucher werden nur über einen aus der Anfrage gebildeten Hashwert
+        unterschieden, der nach 24 Stunden verworfen wird. Rechtsgrundlage ist unser berechtigtes Interesse daran, das Angebot
+        zu verbessern (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+      <p>
         <strong style={strong}>E-Mails.</strong> Wir senden dir nur Mails, die zum Konto oder Vertrag gehören, zum Beispiel
         Kontobestätigung, Passwort zurücksetzen, Vertragsbestätigung oder Eingangsbestätigungen. Werbung versenden wir nicht.
       </p>
@@ -74,7 +81,7 @@ export default function DatenschutzPage() {
       <h2 style={h2}>3. Eingesetzte Dienstleister</h2>
       <ul style={{ paddingLeft: "22px", margin: "0 0 16px" }}>
         <li><strong style={strong}>Supabase, Inc. (USA):</strong> Datenbank, Nutzerkonten und Anmeldung.</li>
-        <li><strong style={strong}>Vercel Inc. (USA):</strong> Hosting der Website.</li>
+        <li><strong style={strong}>Vercel Inc. (USA):</strong> Hosting der Website und Reichweitenmessung.</li>
         <li><strong style={strong}>Resend (USA):</strong> Versand der oben genannten E-Mails.</li>
         <li><strong style={strong}>Stripe Payments Europe, Ltd. (Irland):</strong> Zahlungsabwicklung. Stripe verarbeitet Zahlungsdaten teilweise in eigener Verantwortung, etwa zur Betrugsabwehr.</li>
         <li><strong style={strong}>Google Ireland Limited (Irland):</strong> nur wenn du dich mit Google anmeldest.</li>
@@ -88,8 +95,8 @@ export default function DatenschutzPage() {
       <h2 style={h2}>4. Cookies und Speicherung auf deinem Gerät</h2>
       <p>
         Wir setzen nur technisch notwendige Cookies ein, die dich nach dem Login angemeldet halten. Rechtsgrundlage ist
-        § 25 Abs. 2 Nr. 2 TDDDG, eine Einwilligung ist dafür nicht nötig. Es gibt keine Analyse-Tools, keine Tracking-Pixel und
-        keine Werbe-Cookies, deshalb auch kein Cookie-Banner. Schriftarten liefern wir von unserem eigenen Server aus. Auf
+        § 25 Abs. 2 Nr. 2 TDDDG, eine Einwilligung ist dafür nicht nötig. Die Reichweitenmessung kommt ohne Cookies aus. Es gibt keine
+        Tracking-Pixel und keine Werbe-Cookies, deshalb auch kein Cookie-Banner. Schriftarten liefern wir von unserem eigenen Server aus. Auf
         den Seiten von Stripe gelten beim Bezahlen die Regeln von Stripe.
       </p>
 
